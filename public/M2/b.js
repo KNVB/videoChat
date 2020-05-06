@@ -160,7 +160,22 @@ function handleRemoteTrack(event) {
 	remoteStream.addTrack(event.track, remoteStream);
 }
 function hangUp() {
-	writeLog("Hang Up"); 
+	writeLog("Hang Up");
+	if (document.getElementById("selfView").srcObject) {
+		document.getElementById("selfView").srcObject.getTracks()
+		.forEach((track) => {
+			track.stop();
+			document.getElementById("selfView").srcObject.removeTrack(track);
+		});
+		document.getElementById("selfView").srcObject=null;
+	}
+	if (remoteView.srcObject) {
+		remoteView.srcObject.getTracks()
+		.forEach((track) => {
+			track.stop();
+			remoteView.srcObject.removeTrack(track);
+		});
+	}		
 	if (dataChannel) {
 		dataChannel.onopen = null;
 		dataChannel.onmessage = null;
