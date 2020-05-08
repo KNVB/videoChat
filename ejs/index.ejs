@@ -1,0 +1,41 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Video Chat Room</title>
+		<style>
+			#message
+			{
+				color:red;
+				font-weight: bold;
+			}
+		</style>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<script>
+			$( document ).ready(function() {
+				var messageBox=document.getElementById("message");
+<%
+				if 	(typeof errorField!="undefined") {
+					switch (errorField) {
+						case "email":%>
+							messageBox.innerHTML="Your email address has been used by another user, please use another one.";
+							document.getElementById("email").focus();
+<%							break;
+						case "logoutSuccess":%>
+							messageBox.innerHTML="<%=alias%> has successfully logged out.";
+<%							break;
+					}
+				}
+%>				
+			});
+		</script>	
+	</head>	
+	<body>
+		<form method="post" action="/login">
+			Nick name/Alias:<input type=text required name="alias" value="<%=((typeof user=='undefined')?'':user.alias)%>"><br>
+			Email Address:<input type=email id="email" required name="email" value="<%=((typeof user=='undefined')?'':user.email)%>"><br>
+			<input type="submit" value="Login">
+		</form>
+		<div id="message">
+		</div>
+	</body>
+</html>	
