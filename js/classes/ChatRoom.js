@@ -1,12 +1,13 @@
 const User=require("./User");
 class ChatRoom
 {
-	constructor() {
+	constructor(hostUser) {
 		var host;
 		var socketIdList={};
 		var userList={};
 		this.name="";
 		
+		host=hostUser;
 		this.addUser=((user)=>{
 			socketIdList[user.email]=user.socketId;	
 			userList[user.email]=user;		
@@ -20,13 +21,16 @@ class ChatRoom
 		this.getUserList=(()=>{
 			return userList;
 		});
+		this.isHost=((user)=> {
+			if ((host.email==user.email) && (host.alias==user.alias)) {
+				return true;
+			} else {
+				return false;
+			}				
+		});
 		this.removeUser=((user)=>{
 			delete userList[user.email];
 		});
-		this.setHost=((user)=>{
-		  host=user;
-		});
-		
 		
 	}
 }

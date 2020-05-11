@@ -41,6 +41,7 @@ app.use(session({
 app.set('views', './ejs');
 app.set('view engine', 'ejs');
 app.use('/css', express.static('css'));
+app.use('/room/style.css',express.static('css/room_style.css'));
 app.get('/',function (req,res) {
 	try{
 		res.locals.event=req.query.event;
@@ -64,10 +65,8 @@ app.post("/genRoom",isLoggedIn, function(req, res,next) {
 	var ChatRoom=require("./classes/ChatRoom"); 
 	var roomId=uuidv4();
 	var user=req.session.user;
-	var room=new ChatRoom();
+	var room=new ChatRoom(user);
 	room.name=req.body.roomName;
-	
-	room.setHost(user);
 	room.addUser(user);
 	roomList[roomId]=room;
 	
