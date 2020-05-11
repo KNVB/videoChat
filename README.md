@@ -1,8 +1,10 @@
 # VideoChat
-1 to 1 Video conference web app
+Build a 1 to 1 Video conference web app with Node.js
 
-System Requirement:
-* Node.js
-* Socket.io
+Packaed Used:
+* body-parser
 * Express
+* Express-session
 * NodeMon
+* Socket.io
+* uuid
