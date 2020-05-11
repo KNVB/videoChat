@@ -3,13 +3,15 @@ var cookieParser = require('cookie-parser');
 var express = require('express');
 var session = require('express-session');
 var app = express();
+var roomList={};
 var userList={};
 
 var http = require('http');
 var serverPort = 24;
+const { v4: uuidv4 } = require('uuid');
+const User=require("./classes/User");
+
 server = http.createServer(app);
-
-
 /*
 var fs = require('fs');
 var https = require('https');
@@ -36,41 +38,108 @@ app.use(session({
 	resave: true,
 	saveUninitialized: true
 }));
+app.set('views', './ejs');
 app.set('view engine', 'ejs');
+app.use('/css', express.static('css'));
 app.get('/',function (req,res) {
-	res.render('../ejs/index.ejs');
+	try{
+		res.locals.event=req.query.event;
+		switch (res.locals.event) {
+			case "logoutSuccess":
+				res.locals.alias=req.query.alias;
+				break;
+			case "duplicateEmail":
+				res.locals.email=req.query.email;
+				res.locals.user=req.session.user;
+				break;	
+		}
+		
+	} catch (error){
+		
+	}
+	res.render('index');
+	req.session.destroy();
 });
+app.post("/genRoom",isLoggedIn, function(req, res,next) {
+	var ChatRoom=require("./classes/ChatRoom"); 
+	var roomId=uuidv4();
+	var user=req.session.user;
+	var room=new ChatRoom();
+	room.name=req.body.roomName;
+	
+	room.setHost(user);
+	room.addUser(user);
+	roomList[roomId]=room;
+	
+	res.redirect("/room?roomId="+roomId);
+});	
+
 app.post('/login', function(req, res) {
 	
 	var alias = req.body.alias;
 	var email = req.body.email;
-	var user=require("./classes/user.js");
+	var user=new User();
 	user.alias=alias;
 	user.email=email;
-
+	
+	req.session.user = user;
 	if (userList[email]==null) {
-		req.session.user = user;
-		res.redirect('/home/');
+		res.redirect('/newRoom/');
 	} else {
-		res.locals.errorField="email";
-		res.locals.user=user;
-		res.render('../ejs/index.ejs');
+		res.redirect("/?event=duplicateEmail");
 	}	
 });
-app.get('/home/',isLoggedIn, function(req, res,next) {
-	res.locals.user=req.session.user;
-	res.render('../ejs/home_index');
-});
+
 app.get('/logout',function(req,res){
+	var roomId;
+	try{
+		roomId=req.query.roomId;
+		var room=roomList[roomId];
+		room.removeUser(req.session.user);
+		if (room.getUserAccount()==0) {
+			console.log("Room id="+roomId+",room name="+room.name+" is removed");
+			room=null;
+			delete roomList[roomId];
+		}
+	} catch (error) {
+	}		
 	delete userList[req.session.user.email];
-	res.locals.errorField="logoutSuccess";
-	res.locals.alias=req.session.user.alias;
+	var alias=req.session.user.alias;
 	req.session.destroy();
-	res.render('../ejs/index.ejs');
+	res.redirect("/?event=logoutSuccess&alias="+alias);
+});
+app.get('/newRoom/',isLoggedIn, function(req, res,next) {
+	res.locals.user=req.session.user;
+	try{
+		res.locals.event=req.query.event;
+		switch (res.locals.event) {
+		
+				
+		}
+	} catch (error){
+		
+	}
+	res.render('new_room');
+});
+app.get("/room",isLoggedIn, function(req, res,next) {
+	var roomId=req.query.roomId;
+	if (roomList[roomId]==null) {
+		res.redirect("/newRoom?event=invalidRoomId");
+	} else {
+		res.locals.user=req.session.user;
+		res.locals.room=roomList[roomId];
+		res.locals.roomId=roomId;
+		res.locals.joinLink=req.protocol+"://"+req.hostname+":"+serverPort+"/join?roomId="+roomId;
+		console.log("New Chat Room is created!Room Id="+roomId+",Room Name="+res.locals.room.name);
+		console.log("Join Link:"+res.locals.joinLink);
+		
+		res.render('room.ejs');
+	}	
 });
 io.on('connection', (socket) => {
 	socket.on("addUser",(user)=>{
-		var userObj=require("./classes/user.js");
+		
+		var userObj=new User();
 		userObj.alias=user.alias;
 		userObj.email=user.email;
 		userObj.socketId=socket.id;
@@ -87,5 +156,5 @@ function isLoggedIn(req, res, next) {
     if (req.session.user)
 		next();	
 	else
-		res.send("<script>alert('You have to login to use the service.');location.href='/';</script>");		
+		res.redirect("/?event=invalidAccess");
 }

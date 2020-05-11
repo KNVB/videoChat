@@ -6,3 +6,4 @@ class User
 		this.socketId;
 	}
 }
+module.exports = User;

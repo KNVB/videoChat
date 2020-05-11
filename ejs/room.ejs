@@ -1,0 +1,20 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<script>
+		</script>
+	</head>
+	<body>
+		Room Name:<%=room.name%><br>
+		This room hosted by:<%=room.getHost().alias%><br>
+		The following link can used for access this chatroom.<br>
+		<%=joinLink%>
+		
+		<a class="w3-button w3-blue w3-round-xlarge" href="/logout?roomId=<%=roomId%>">Logout</a>
+<%	if (room.isHost(user)){%>		
+		<a class="w3-button w3-blue w3-round-xlarge" href="/close?roomId=<%=roomId%>">Close the room</a>
+<%	}%>		
+	</body>
+</html>	
