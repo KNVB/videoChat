@@ -34,6 +34,7 @@
 			<label for="email">Email Address:</label>
 			<input class="w3-input" type=email id="email" required name="email" value="<%=((typeof user=='undefined')?'':user.email)%>"><br>
 			<button class="w3-button w3-blue w3-round-xxlarge" type="submit">Login</button>
+			<input type=hidden name="roomId" value="<%=((typeof roomId=='undefined')?'':roomId)%>">
 		</form>
 		<div class="w3-red" id="message">
 		</div>

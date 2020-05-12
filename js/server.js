@@ -41,7 +41,6 @@ app.use(session({
 app.set('views', './ejs');
 app.set('view engine', 'ejs');
 app.use('/css', express.static('css'));
-app.use('/room/style.css',express.static('css/room_style.css'));
 app.get('/',function (req,res) {
 	try{
 		res.locals.event=req.query.event;
@@ -54,12 +53,12 @@ app.get('/',function (req,res) {
 				res.locals.user=req.session.user;
 				break;	
 		}
-		
+		req.session.destroy();	
 	} catch (error){
 		
+	}finally {
+		res.render('index');
 	}
-	res.render('index');
-	req.session.destroy();
 });
 app.post("/genRoom",isLoggedIn, function(req, res,next) {
 	var ChatRoom=require("./classes/ChatRoom"); 
@@ -69,24 +68,48 @@ app.post("/genRoom",isLoggedIn, function(req, res,next) {
 	room.name=req.body.roomName;
 	room.addUser(user);
 	roomList[roomId]=room;
-	
+	req.session.isHost=true;
 	res.redirect("/room?roomId="+roomId);
 });	
-
+app.get("/join",function(req, res,next) {
+	try {
+		var roomId=req.query.roomId;
+		if (roomList[roomId]==null) {
+			res.send("Invalid Room Id");
+		} else {
+			res.locals.roomId=roomId;
+			res.render('index');
+		}
+	} catch (error) {
+		res.send("Invalid Room Id");
+	}
+});
 app.post('/login', function(req, res) {
-	
-	var alias = req.body.alias;
-	var email = req.body.email;
-	var user=new User();
-	user.alias=alias;
-	user.email=email;
-	
-	req.session.user = user;
-	if (userList[email]==null) {
-		res.redirect('/newRoom/');
-	} else {
-		res.redirect("/?event=duplicateEmail");
-	}	
+	try {
+		var alias = req.body.alias;
+		var email = req.body.email;
+		var roomId=req.body.roomId;
+		var user=new User();
+		user.alias=alias;
+		user.email=email;
+		
+		req.session.user = user;
+		if (userList[email]==null) {
+			if (roomId=="") {
+				res.redirect('/newRoom/');
+			} else {
+				var room=roomList[roomId];
+				room.addUser(user);
+				req.session.isHost=false;
+				console.log("user:"+user.alias+" has joined the room:"+room.name);
+				res.redirect("/room?roomId="+roomId);
+			}				
+		} else {
+			res.redirect("/?event=duplicateEmail");
+		}	
+	} catch (error) {
+		res.send ("Missing Parameter");
+	}
 });
 
 app.get('/logout',function(req,res){
@@ -128,6 +151,7 @@ app.get("/room",isLoggedIn, function(req, res,next) {
 		res.locals.user=req.session.user;
 		res.locals.room=roomList[roomId];
 		res.locals.roomId=roomId;
+		res.locals.isHost=req.session.isHost;
 		res.locals.joinLink=req.protocol+"://"+req.hostname+":"+serverPort+"/join?roomId="+roomId;
 		console.log("New Chat Room is created!Room Id="+roomId+",Room Name="+res.locals.room.name);
 		console.log("Join Link:"+res.locals.joinLink);
