@@ -1,0 +1,54 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<style>
+			html,body {
+				height:100%;
+				padding:0px;
+				margin:0px;
+			}
+			.left{
+				border:1px solid green;
+				height:100%;
+				width:90vw;
+			}
+			.right{
+				border:1px solid red;
+				height:100%;
+				width:10vw;
+			}
+			.wrapper {
+			  display: flex;
+			  flex-direction:row;
+			  padding:0px;
+			  margin:5px;
+			  border: 1px solid blue;
+			  height: calc(100vh - 11px);
+			  width:calc(100vw-11px);
+			}
+		</style>
+		<script>
+			function go(){
+				var left=$(".left")[0];
+				var right=$(".right")[0];
+				//left.style.width="50vw";
+				$(".right").animate({
+					width:"1%"
+				},500);
+				$(".left").animate({
+					width:"99vw"
+				},500);
+			}
+		</script>
+	</head>
+	<body>	
+		<div class="wrapper">
+			<div class="left">
+			</div>
+			<div class="right">
+				<button onclick="go()">Go</button>
+			</div>
+		</div>
+	</body>	
