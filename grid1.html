@@ -1,0 +1,193 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+		<link rel="stylesheet" href="css/onoffswitch.css">
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<style>
+			.a {
+			  grid-column: 1;
+			  grid-row: 1;
+			  display: grid;
+			  padding:5px;
+			  margin:0px;
+			  grid-gap: 5px;
+			  grid-template-rows: 9fr 1fr;
+			}
+			.b {
+			  grid-column: 2;
+			  grid-row: 1;
+			  display: grid;
+			  padding:5px;
+			  margin:0px;
+			  grid-gap: 5px;
+			  grid-template-rows: 1fr;
+			}
+			.box {
+			  font-family: arial;
+			  border: 1px solid black;
+			  padding:5px;
+			}
+			.c {
+			  grid-column: 1;
+			  grid-row: 1;
+			
+			}
+			.chatRoom{
+				display:none;
+			}
+			.d {
+			  grid-column: 1;
+			  grid-row: 2;
+			  display:flex;
+			  flex-direction:row;
+			  align-items:center;
+			  justify-content:flex-start;
+			}
+			.memberList{
+				display:block;
+			}
+			.wrapper {
+			  display: grid;
+			  padding:5px;
+			  margin:5px;
+			  grid-gap: 5px;
+			  grid-template-columns: 9fr 1fr;
+			  border: 1px solid blue;
+			}
+			html,body {
+				height:100%;
+				width:100%;
+				padding:0px;
+				margin:0px;
+				display: grid;
+				grid-template-columns: 1fr;
+				grid-template-rows: 1fr;
+			}
+			.switch {
+				display:flex;
+				flex-direction:row;
+				align-items:center;
+				margin:5px;
+			}
+			.switches {
+				display:flex;
+				flex-direction:row;
+				justify-content:flex-start;
+				padding:3px;
+				border:1px solid magenta;
+			}
+		</style>
+		<script>
+			var objList={};
+			$( document ).ready(function() {
+				var b=$(".b");
+				
+				$(".b > div").each((index,div)=>{
+					var className=div.className.replace("box ","");
+					className=className.trim();
+					objList[className]=$(div);
+				});
+			});
+			function togglePanel(targetClassName) {
+				var wrapper=$(".wrapper");
+				var b=$(".b");
+				var showCount=0;
+				
+				var obj=objList[targetClassName];
+				
+				b.hide();
+				if (obj.css('display')=="block") {
+					obj.hide();
+				} else {
+					obj.show();
+				}
+				Object.keys(objList).forEach((key)=>{
+					if (objList[key].css('display')=="block") {
+						showCount++;
+					}
+				});
+				if (showCount>0) { 
+					wrapper[0].style.gridTemplateColumns="9fr 1fr";
+					b[0].style.gridTemplateRows="repeat("+showCount+",1fr)";
+					b.show();
+				} else {
+					wrapper[0].style.gridTemplateColumns="1fr";
+				}
+			}
+			function toggleShareAudio(img) {
+				switch (img.value) {
+					case "0":
+						img.value="1";	
+						img.title="Click to start share audio";
+						img.src="share_audio.png";
+						break;
+					case "1":
+						img.value="0";	
+						img.title="Click to stop share audio";
+						img.src="not_share_audio.png";
+						break;
+				}
+			}
+			function toggleShareVideo(img) {
+				switch (img.value) {
+					case "0":
+						img.value="1";	
+						img.title="Click to start share video";
+						img.src="share_video.png";
+						break;
+					case "1":
+						img.value="0";	
+						img.title="Click to stop share video";
+						img.src="not_share_video.png";
+						break;
+				}
+			}
+		</script>		
+	</head>
+	<body>
+		<div class="wrapper">
+			<div class="box a">
+				<div class="box c">C</div>
+				<div class="box d">
+					<div class="switch">
+						<label>Share Audio:</label>
+						<div class="onoffswitch"> <!-- Refer https://proto.io/freebies/onoff/-->
+							<input type="checkbox" 
+								name="onoffswitch" 
+								class="onoffswitch-checkbox" 
+								id="shareAudio" 
+								onchange="enableShareAudio(this.checked)"
+								checked>
+							<label class="onoffswitch-label" for="shareAudio">
+								<span class="onoffswitch-inner"></span>
+								<span class="onoffswitch-switch"></span>
+							</label>
+						</div>
+					</div>
+					<div class="switch">
+						<label>Share Video:</label>
+						<div class="onoffswitch"><!-- Refer https://proto.io/freebies/onoff/-->
+							<input type="checkbox" 
+								name="onoffswitch" 
+								class="onoffswitch-checkbox" 
+								id="shareVideo" 
+								onchange="enableShareVideo(this.checked)"		
+								checked>
+							<label class="onoffswitch-label" for="shareVideo">
+								<span class="onoffswitch-inner"></span>
+								<span class="onoffswitch-switch"></span>
+							</label>
+						</div>					
+					</div>
+					<button class="w3-button w3-blue w3-round-xxlarge" onclick="togglePanel('memberList')">Member List</button>
+					<button class="w3-button w3-green w3-round-xxlarge" onclick="togglePanel('chatRoom')">Chat Room</button>
+				</div>
+			</div>
+			<div class="box b">
+				<div class="box memberList">Member List</div>
+				<div class="box chatRoom">Chat Room</div>
+			</div>
+		</div>
+	</body>
+</html>	

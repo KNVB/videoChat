@@ -9,10 +9,23 @@
 				padding:0px;
 				margin:0px;
 			}
+			.buttons{
+				height:15vh;
+				border:1px solid Aquamarine;
+				padding:0px;
+				margin:5px;
+			}
 			.left{
 				border:1px solid green;
+				display: flex;
+				flex-direction:column;
 				height:100%;
 				width:90vw;
+			}
+			.main{
+				border:1px solid Brown;
+				height:85vh;
+				margin:5px;				
 			}
 			.right{
 				border:1px solid red;
@@ -46,7 +59,11 @@
 	<body>	
 		<div class="wrapper">
 			<div class="left">
-				<button onclick="go()">Go</button>
+				<div class="main">
+				</div>
+				<div class="buttons">
+					<button onclick="go()">Go</button>
+				</div>	
 			</div>
 			<div class="right">
 			</div>
