@@ -56,7 +56,7 @@ app.get('/',function (req,res) {
 });
 app.get("/joinRoom",function(req,res){
 	try{
-		console.log("ho:"+req.query.roomId);
+		//console.log("ho:"+req.query.roomId);
 		res.locals.roomId=req.query.roomId;
 		res.render('index');
 	} catch(error){
@@ -72,6 +72,7 @@ app.get('/room',function(req,res){
 	res.locals.user=req.session.user;
 	res.locals.roomId=req.session.roomId;
 	res.locals.isHost=req.session.isHost;
+	res.locals.room=roomList[req.session.roomId];
 	res.render('room');
 
 });
@@ -111,23 +112,25 @@ app.post('/login', function(req, res) {
 		user.email=email;
 		user.shareMedia={"videoSrc":req.body.videoSrc,"shareAudio":req.body.shareAudio};
 		req.session.user = user;
-		
+		//console.log(req.body);
 		if (userList[email]==null) {
 			userList[email]=user;
 			switch (action) {
 				case "createRoom":
 					req.session.roomId=uuidv4();
 					req.session.isHost=true;
+					
 					roomList[req.session.roomId]=new ChatRoom(user);
-					roomList[req.session.roomId].addUser(user);
+					roomList[req.session.roomId].ioObj(io);
 					res.redirect('/room');
 					break;
 				case "joinRoom":
 					var room=roomList[roomId];
+					//console.log(room);
 					room.addUser(user);
 					req.session.roomId=roomId;
 					req.session.isHost=false;
-					console.log("user:"+user.alias+" has joined the room:"+room.name);
+					//console.log("user:"+user.alias+" has joined the room where room id:"+roomId);
 					res.redirect("/room");
 					break;
 			}
@@ -140,7 +143,10 @@ app.post('/login', function(req, res) {
 	}
 });
 io.on('connection', (socket) => {
-	socket.on("getRoomInfo",(data)=>{
-		console.log(data);
+	socket.on("updateSocketId",(data)=>{
+		//console.log(data);
+		var room=roomList[data.roomId];
+		data.user.socketId=socket.id;
+		room.updateSocketId(data.user,socket.id);
 	});	
 });

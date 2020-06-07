@@ -3,11 +3,15 @@ class ChatRoom
 {
 	constructor(hostUser) {
 		var host;
+		var ioObj;
 		var socketIdList={};
 		var userList={};
 		
 		host=hostUser;
 		addUser(host);
+		this.ioObj=((io)=>{
+			ioObj=io;
+		});
 		this.addUser=((user)=>{
 			addUser(user);
 		});
@@ -29,7 +33,22 @@ class ChatRoom
 		});
 		this.removeUser=((user)=>{
 			delete userList[user.email];
+			broadCastMemberList(user);
 		});
+		this.updateSocketId=((user,socketId)=>{
+			socketIdList[user.email]=socketId;
+			userList[user.email]=user;	
+			broadCastMemberList(user);
+		});
+		function broadCastMemberList(user) {
+			Object.keys(userList).forEach((email)=>{
+				if (email!=user.email){
+					var existingUser=userList[email];
+					ioObj.to(existingUser.socketId).emit('updateMemberList',userList);
+					console.log("Email="+email+",socketId="+existingUser.socketId);
+				}
+			});		
+		}
 		function addUser(user){
 			socketIdList[user.email]=user.socketId;	
 			userList[user.email]=user;	

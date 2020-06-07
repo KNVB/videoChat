@@ -45,6 +45,7 @@
 						copyLink();
 					}
 				});
+				socket.emit("updateSocketId",{"user":<%-JSON.stringify(user)%>,"roomId":"<%=roomId%>"});
 <%if (isHost) {%>
 				$("#videoSrc").val("<%=user.shareMedia.videoSrc%>");
 				$("#shareAudio").val("<%=user.shareMedia.shareAudio%>");
@@ -107,6 +108,22 @@
 									break;
 				}				
 			}
+			socket.on("updateMemberList",function(memberList){
+				console.log("updateMemberList event received");
+				$("#memberList").empty();
+				$("#memberCount").text("("+Object.keys(memberList).length+")");
+				Object.keys(memberList).forEach((email)=>{
+					var member=memberList[email];
+					var item ="<li class=\"media border border-secondary\">";
+					if ((<%=isHost%>) && ("<%=user.email%>"==email))
+						item+="Hosts &nbsp;&nbsp;";
+					else
+						item+="<video style=\"widht:120px;height:60px\" id=\""+email+"\" controls></video>";
+					item+="<div class=\"media-body align-self-center\">";
+					item+=member.alias+"</div></li>";
+					$("#memberList").append(item);
+				});
+			});
 <%if (isHost) {%>
 			function closeTheMeeting(){
 				clearVideo();
@@ -190,14 +207,14 @@
 						<a class="nav-link" 
 							id="pills-member-tab" data-toggle="pill" 
 							href="#pills-member" role="tab" aria-controls="pills-member" aria-selected="false">
-							<i class="fas fa-2x fa-user-friends"></i>{1}
+							<i class="fas fa-2x fa-user-friends"></i><span id="memberCount">(<%=room.getUserCount()%>)</span>
 						</a>
 					  </li>
 					  <li class="nav-item">
 						<a class="nav-link" 
 							id="pills-message-tab" data-toggle="pill" 
 							href="#pills-message" role="tab" aria-controls="pills-message" aria-selected="false">
-							<i class="far fa-2x fa-comment"></i>{1}
+							<i class="far fa-2x fa-comment"></i><div id="unreadMessageCount"></div>
 						</a>
 					  </li>
 					</ul>
@@ -206,8 +223,26 @@
 							<i class="fas fa-2x fa-share-alt" style="cursor:pointer"></i>
 						</div>
 						<div class="p-1 tab-pane fade position-absolute h-100 w-100 overflow-auto" id="pills-member" role="tabpanel" aria-labelledby="pills-info-tab">
-							<ul class="list-unstyled">
-								
+							<ul id="memberList" class="list-unstyled">
+<%						Object.keys(room.getUserList()).forEach((key)=>{
+							var user=room.getUserList()[key];
+							if (room.isHost(user)){%>
+								<li class="media border border-secondary">
+									Hosts &nbsp;&nbsp;
+									<div class="media-body">
+										<%=user.alias%>
+									</div>
+								</li>
+<%							
+							} else {%>								
+								<li class="media border border-secondary">
+									<video style="widht:120px;height:60px" controls></video>
+									<div class="media-body align-self-center">
+										<%=user.alias%>
+									</div>	
+								</li>	
+<%							}
+						});%>								
 							</ul>
 						</div>
 						<div class="tab-pane fade position-absolute h-100 w-100 p-0" id="pills-message" role="tabpanel" aria-labelledby="pills-message-tab">
