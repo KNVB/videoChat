@@ -1,0 +1,38 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		
+		<script>
+			var socket;
+			$( document ).ready(function() {
+				socket = io();
+				socket.emit('addUser',<%-JSON.stringify(user)%>);
+				console.log("ko");
+				var messageBox=document.getElementById("message");
+<%
+				if 	(typeof event!="undefined") {
+					switch (event) {
+						case "invalidRoomId":%>
+							messageBox.innerHTML="Invalid Room Id, you may create a new room";
+<%							break;							
+					}
+				}%>			
+			});
+		</script>	
+	</head>
+	<body>
+		<form method="post" action="/genRoom" class="w3-container">
+			<p class="w3-xlarge w3-margin-left">Create A Chat Room</p>
+			<label for="roomName">Please enter the new chat room name:</label>
+			<input type="text" class="w3-input" name="roomName" required>
+			<br>
+			<button class="w3-button w3-blue w3-round-xlarge">Create</button>
+			<a class="w3-button w3-blue w3-round-xlarge" href="/logout">Logout</a>
+		</form>
+		<div class="w3-red" id="message">
+		</div>
+	</body>
+</html>
+	

@@ -11,10 +11,15 @@
 		<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
 		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+		<!--
+		<script src="https://kit.fontawesome.com/145b006857.js" crossorigin="anonymous"></script>
+		-->
+		<script src="/socket.io/socket.io.js"></script>
 		<script src="js/webrtc.js"></script>
 		<script>
 			var selfView;
 			var webRTC=new WebRTC();
+			var socket = io();
 			$( document ).ready(function(){
 				selfView=document.getElementById("selfView");
 				$("#audioSrcLabel").click(function (){
@@ -31,19 +36,7 @@
 				$(window).resize(()=>{
 					$("html,body").height(window.innertHeight);
 				});
-				var messageBox=document.getElementById("message");
-<%				
-				if 	(typeof event!="undefined") {
-					switch (event) {
-						case "duplicateEmail":%>
-							messageBox.innerHTML="The entered email address(i.e. <%=user.email%>) has been used by another user, please use another one.";
-							document.getElementById("email").focus();
-<%							break;
-						case "logoutSuccess":%>
-							messageBox.innerHTML="<%=alias%> has logged out successfully.";
-<%							break;
-					}
-				}%>				
+				
 			});
 			function clearVideo(){
 				if (selfView.srcObject!=null) {
@@ -53,6 +46,12 @@
 					selfView.srcObject=null;
 				}
 			}
+			/*
+			function createRoom(v) {
+				var data={shareAudio:v.shareAudio.checked,videoSrc:v.videoSrc.value,hostEmailAddress:v.hostEmailAddress.value};
+				socket.emit('createRoom',data);
+				return false;
+			}*/
 			function setupVideo(stream){
 				selfView.srcObject=stream;
 				stream.getTracks().forEach((track)=> {
@@ -89,6 +88,9 @@
 			function writeLog(message){
 				console.log(message);
 			}
+			socket.on("roomId",function(roomId){
+				location.href="/room?roomId="+roomId;
+			});
 		</script>
 		<style>
 			video{
@@ -97,12 +99,13 @@
 		</style>	
 	</head>
 	<body class="p-1">
-		<form class="p-0" method="post" action="/login">
+		<form class="p-0" method="post" action="/joinRoom">
 			<div class="p-0 container-fluid d-flex h-100 flex-column border border-danger">
 				<div class="p-0 row h-50 no-gutters">
 					<div class="p-0 col-12 col-sm-12 col-lg-12 col-xl-12 position-relative">
 						<video id="selfView" class="h-100 w-100 position-absolute" autoplay controls muted>
 						</video>
+						<input type="hidden" name="roomId" value="<%=roomId%>">
 					</div>
 				</div>
 				<div class="p-0 row h-50 border border-secondary no-gutters">
@@ -126,48 +129,21 @@
 										<option value="yes">Yes</option>
 										<option value="no" >No</option>
 									</select>
+									
 								</label>
 							</div>
+						</div>	
+						<div class="d-flex justify-content-center">
+							Your email address:&nbsp;&nbsp;<input type="email" required name="hostEmailAddress" >
 						</div>
-						
-						<table class="w-100">
-							<tr>
-								<td style="text-align:right">
-									Your alias:&nbsp;&nbsp;
-								</td>
-								<td>
-									<input type="text" required name="alias">
-								</td>	
-							</tr>
-							<tr>
-								<td style="text-align:right">
-									Your email address:&nbsp;&nbsp;
-								</td>
-								<td>
-									<input type="email" id="email" required name="email">
-								</td>	
-							</tr>
-							
-						</table>
-<% if (typeof roomId=='undefined') {%>						
 						<div class="border border-warning d-flex flex-row justify-content-around p-1">
 							<div class="btn-group-toggle d-flex justify-content-center p-1 w-100">
-								<button class="btn-sm btn btn-lg btn-success" name="action" value="createRoom">Create a meeting</button>
+								<button class="btn-sm btn btn-lg btn-success">Join the meeting</button>
 							</div>
-						</div>
-<%} else {%>
-						<div class="border border-warning d-flex flex-row justify-content-around p-1">
-							<div class="btn-group-toggle d-flex justify-content-center p-1 w-100">
-								<button class="btn-sm btn btn-lg btn-success" name="action" value="joinRoom">Join a meeting</button>
-							</div>
-						</div>
-<%}%>						
-						<div id="message" class="bg-danger text-white">
 						</div>
 					</div>		
 				</div>
 			</div>
-			<input type="hidden" name="roomId" value="<%=((typeof roomId=='undefined')?'':roomId)%>">
 		</form>
 	</body>
 </html>
