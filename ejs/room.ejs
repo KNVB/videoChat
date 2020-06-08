@@ -13,10 +13,9 @@
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 		<script src="https://kit.fontawesome.com/145b006857.js" crossorigin="anonymous"></script>
 		<script src="/socket.io/socket.io.js"></script>
-		<script src="js/webrtc.js"></script>
-
+		<script src="js/LocalMedia.js"></script>
 		<script>
-			var webRTC=new WebRTC();
+			var localMedia=new LocalMedia();
 			var socket = io.connect();
 			$( document ).ready(function(){
 				$("#audioSrcLabel").click(function (){
@@ -36,20 +35,20 @@
 				$(".fa-share-alt").click(()=>{
 
 					if (navigator.share) {
-						navigator.share({
-							title: 'Video Chat Link',
-							text: 'This is the video Chat link',
-							url: getShareLink(),
-						})
+						var shareData={"title": 'Video Chat Link',"text": 'This is the video Chat link'};
+						shareData["url"]=getShareLink();
+						navigator.share(shareData);
 					} else {
 						copyLink();
 					}
 				});
 				socket.emit("updateSocketId",{"user":<%-JSON.stringify(user)%>,"roomId":"<%=roomId%>"});
-<%if (isHost) {%>
 				$("#videoSrc").val("<%=user.shareMedia.videoSrc%>");
 				$("#shareAudio").val("<%=user.shareMedia.shareAudio%>");
+
+<%if (isHost) {%>
 				updateSrc();
+<%} else {%>
 <%}%>				
 			});
 			function copyLink() {
@@ -88,10 +87,10 @@
 			async function updateSrc(){
 				var videoSrc=document.getElementById("videoSrc");
 				
-				webRTC.setLogger(writeLog);
+				localMedia.setLogger(writeLog);
 				clearVideo();
 				switch ($(videoSrc).val()){
-					case "screen":	var stream=await webRTC.getShareDesktopVideo();
+					case "screen":	var stream=await localMedia.getShareDesktopVideo();
 									if (stream==null) {
 										alert("Fail to get video from share desktop");
 									} else {
@@ -99,7 +98,7 @@
 									}
 									break;
 					
-					case "webCam":	var stream=await webRTC.getWebCamVideo();
+					case "webCam":	var stream=await localMedia.getWebCamVideo();
 									if (stream==null) {
 										alert("Fail to get video from web cam");
 									} else {
@@ -108,21 +107,36 @@
 									break;
 				}				
 			}
-			socket.on("updateMemberList",function(memberList){
-				console.log("updateMemberList event received");
-				$("#memberList").empty();
-				$("#memberCount").text("("+Object.keys(memberList).length+")");
-				Object.keys(memberList).forEach((email)=>{
-					var member=memberList[email];
-					var item ="<li class=\"media border border-secondary\">";
-					if ((<%=isHost%>) && ("<%=user.email%>"==email))
-						item+="Hosts &nbsp;&nbsp;";
-					else
-						item+="<video style=\"widht:120px;height:60px\" id=\""+email+"\" controls></video>";
-					item+="<div class=\"media-body align-self-center\">";
-					item+=member.alias+"</div></li>";
-					$("#memberList").append(item);
-				});
+			socket.on("getMediaOffer",function(reqMemberEmail){
+				
+			});
+			socket.on("newMemberJoinTheMeeting",function(res){
+				
+				var newMember=res.newMember;
+				var req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","reqMemberEmail":"<%=user.email%>","targetMemberEmail":newMember.email};
+				var item ="<li class=\"media border border-secondary\" id=\""+newMember.email+"\">";
+				if ((<%=isHost%>) && ("<%=user.email%>"==newMember.email))
+					item+="Hosts &nbsp;&nbsp;";
+				else
+					item+="<video style=\"widht:120px;height:60px\" controls></video>";
+				item+="<div class=\"media-body align-self-center\">";
+				item+=newMember.alias+"</div></li>";
+				$("#memberCount").text("("+res.memberCount+")");
+				$("#memberList").append(item);
+				
+				socket.emit("getMemberMediaOffer",req);
+			});
+			socket.on("memberLeaveTheMeeting",function(data){
+				var email=data.member.email;
+				$("#memberCount").text("("+data.memberCount+")");
+				/*
+					To use any of the meta-characters ( such as  !"#$%&'()*+,./:;<=>?@[\]^`{|}~ ) as a literal part of 
+					a name, it must be escaped with with two backslashes: \\. For example, an element with id="foo.bar", 
+					can use the selector $("#foo\\.bar"). 
+					
+					https://api.jquery.com/category/selectors/
+				*/
+				document.getElementById(email).remove(); //To prevent the above problem, I use DOM to remove the element.
 			});
 <%if (isHost) {%>
 			function closeTheMeeting(){
@@ -156,6 +170,11 @@
 			<div class="p-0 row h-50 border border-secondary no-gutters">
 				<div class="col p-1 d-flex flex-column">
 					<div class="d-flex flex-row align-items-center justify-content-center">
+						<div class="btn-group-toggle p-1">
+							<label class="btn-sm btn btn-lg btn-success">			
+								Alias:<%=user.alias%>
+							</label>
+						</div>	
 						<div class="btn-group-toggle p-1">
 							<label class="btn-sm btn btn-lg btn-success">
 								Share 
@@ -220,14 +239,14 @@
 					</ul>
 					<div class="tab-content flex-grow-1 position-relative border border-warning p-0" id="pills-tabContent">
 						<div class="p-1 tab-pane fade show active" id="pills-info" role="tabpanel" aria-labelledby="pills-info-tab">
-							<i class="fas fa-2x fa-share-alt" style="cursor:pointer"></i>
+							<i class="fas fa-2x fa-share-alt" style="cursor:pointer"></i><br>
 						</div>
 						<div class="p-1 tab-pane fade position-absolute h-100 w-100 overflow-auto" id="pills-member" role="tabpanel" aria-labelledby="pills-info-tab">
 							<ul id="memberList" class="list-unstyled">
 <%						Object.keys(room.getUserList()).forEach((key)=>{
 							var user=room.getUserList()[key];
 							if (room.isHost(user)){%>
-								<li class="media border border-secondary">
+								<li class="media border border-secondary" id="<%=user.email%>">
 									Hosts &nbsp;&nbsp;
 									<div class="media-body">
 										<%=user.alias%>
@@ -235,7 +254,7 @@
 								</li>
 <%							
 							} else {%>								
-								<li class="media border border-secondary">
+								<li class="media border border-secondary" id="<%=user.email%>">
 									<video style="widht:120px;height:60px" controls></video>
 									<div class="media-body align-self-center">
 										<%=user.alias%>
