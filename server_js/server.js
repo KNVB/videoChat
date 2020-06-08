@@ -151,10 +151,17 @@ app.post('/login', function(req, res) {
 	}
 });
 io.on('connection', (socket) => {
-	socket.on("updateSocketId",(data)=>{
+	socket.on("updateSocketId",(req)=>{
 		//console.log(data);
-		var room=roomList[data.roomId];
-		data.user.socketId=socket.id;
-		room.updateSocketId(data.user,socket.id);
+		var room=roomList[req.roomId];
+		req.user.socketId=socket.id;
+		room.updateSocketId(req.user,socket.id);
 	});	
+	socket.on("getMemberMediaOffer",(req)=>{
+		console.log(req);
+		var room=roomList[req.roomId];
+		var reqMemberEmail=req.reqMemberEmail;
+		var targetMemberEmail=req.targetMemberEmail;
+		room.getMemberMediaOffer(reqMemberEmail,targetMemberEmail);
+	});
 });

@@ -15,8 +15,13 @@ class ChatRoom
 		this.addUser=((user)=>{
 			addUser(user);
 		});
+		
 		this.getHost=(()=>{
 			return host;
+		});
+		this.getMemberMediaOffer=((reqMemberEmail,targetMemberEmail)=>{
+			var targetMember=userList[targetMemberEmail];
+			ioObj.to(targetMember.socketId).emit("getMediaOffer",reqMemberEmail);
 		});
 		this.getUserCount=(()=>{
 			return Object.keys(userList).length;

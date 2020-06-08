@@ -35,23 +35,26 @@
 				$(".fa-share-alt").click(()=>{
 
 					if (navigator.share) {
-						navigator.share({
-							title: 'Video Chat Link',
-							text: 'This is the video Chat link',
-							url: getShareLink(),
-						})
+						var shareData={"title": 'Video Chat Link',"text": 'This is the video Chat link'};
+						shareData["url"]=getShareLink();
+						navigator.share(shareData);
 					} else {
 						copyLink();
 					}
 				});
 				socket.emit("updateSocketId",{"user":<%-JSON.stringify(user)%>,"roomId":"<%=roomId%>"});
-<%if (isHost) {%>
 				$("#videoSrc").val("<%=user.shareMedia.videoSrc%>");
 				$("#shareAudio").val("<%=user.shareMedia.shareAudio%>");
+
+<%if (isHost) {%>
 				updateSrc();
-<%} else {%>
-			
-<%}%>				
+<%} else {
+				Object.keys(room.getUserList()).forEach((key)=> {
+					var user=room.getUserList()[key];
+				%>
+					console.log("<%=user.alias%>,<%=key%>");
+<%				});
+}%>				
 			});
 			function copyLink() {
 				const el = document.createElement('textarea');
@@ -109,8 +112,13 @@
 									break;
 				}				
 			}
-			socket.on("newMemberJoinTheMeeting",function(data){
-				var newMember=data.newMember;
+			socket.on("getMediaOffer",function(reqMemberEmail){
+				
+			});
+			socket.on("newMemberJoinTheMeeting",function(res){
+				
+				var newMember=res.newMember;
+				var req={"roomId":"<%=roomId%>","reqMemberEmail":"<%=user.email%>","targetMemberEmail":newMember.email};
 				var item ="<li class=\"media border border-secondary\" id=\""+newMember.email+"\">";
 				if ((<%=isHost%>) && ("<%=user.email%>"==newMember.email))
 					item+="Hosts &nbsp;&nbsp;";
@@ -118,8 +126,10 @@
 					item+="<video style=\"widht:120px;height:60px\" controls></video>";
 				item+="<div class=\"media-body align-self-center\">";
 				item+=newMember.alias+"</div></li>";
-				$("#memberCount").text("("+data.memberCount+")");
+				$("#memberCount").text("("+res.memberCount+")");
 				$("#memberList").append(item);
+				
+				socket.emit("getMemberMediaOffer",req);
 			});
 			socket.on("memberLeaveTheMeeting",function(data){
 				var email=data.member.email;
