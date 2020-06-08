@@ -11,10 +11,10 @@
 		<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
 		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
-		<script src="js/webrtc.js"></script>
+		<script src="js/LocalMedia.js"></script>
 		<script>
 			var selfView;
-			var webRTC=new WebRTC();
+			var localMedia=new LocalMedia();
 			$( document ).ready(function(){
 				selfView=document.getElementById("selfView");
 				$("#audioSrcLabel").click(function (){
@@ -66,10 +66,10 @@
 			async function updateSrc(){
 				var videoSrc=document.getElementById("videoSrc");
 				
-				webRTC.setLogger(writeLog);
+				localMedia.setLogger(writeLog);
 				clearVideo();
 				switch ($(videoSrc).val()){
-					case "screen":	var stream=await webRTC.getShareDesktopVideo();
+					case "screen":	var stream=await localMedia.getShareDesktopVideo();
 									if (stream==null) {
 										alert("Fail to get video from share desktop");
 									} else {
@@ -77,7 +77,7 @@
 									}
 									break;
 					
-					case "webCam":	var stream=await webRTC.getWebCamVideo();
+					case "webCam":	var stream=await localMedia.getWebCamVideo();
 									if (stream==null) {
 										alert("Fail to get video from web cam");
 									} else {
@@ -98,73 +98,77 @@
 	</head>
 	<body class="p-1">
 		<form class="p-0" method="post" action="/login">
-			<div class="p-0 container-fluid d-flex h-100 flex-column border border-danger">
-				<div class="p-0 row h-50 no-gutters">
+			<div class="p-0 container-fluid d-flex h-100 flex-column">
+				<div class="p-0 row no-gutters">
+					<div class="d-flex p-0 col-12 col-sm-12 col-lg-12 col-xl-12 justify-content-center">
+						<h3>
+						 <%=((typeof roomId=='undefined')?"Create a new":"Join the ")%> meeting
+						</h3>
+					</div>
+				</div>
+				<div class="p-1 row h-25 no-gutters">
 					<div class="p-0 col-12 col-sm-12 col-lg-12 col-xl-12 position-relative">
 						<video id="selfView" class="h-100 w-100 position-absolute" autoplay controls muted>
 						</video>
 					</div>
 				</div>
-				<div class="p-0 row h-50 border border-secondary no-gutters">
-					<div class="col p-1 d-flex flex-column">
-						<div class="d-flex flex-row align-items-center justify-content-center">
-							<div class="btn-group-toggle p-1">
-								<label class="btn-sm btn btn-lg btn-success">
-									Share 
-									<select name="videoSrc" id="videoSrc" class="bg-success text-white" onchange="updateSrc()">
-										<option value="no" >No</option>
-										<option value="webCam">Web Cam</option>
-										<option value="screen">Screen</option>
-									</select>
-									Video
-								</label>
-							</div>
-							<div class="btn-group-toggle p-1">
-								<label class="btn-sm btn btn-lg btn-success">
-									Share Audio
-									<select name="shareAudio" id="shareAudio" class="bg-success text-white">
-										<option value="yes">Yes</option>
-										<option value="no" >No</option>
-									</select>
-								</label>
-							</div>
+				<div class="p-0 row no-gutters border border-primary">
+					<div class="p-0 col-12 col-sm-12 col-lg-12 col-xl-12 d-flex flex-row justify-content-start">
+						Share Media Configuration:
+					</div>
+					<div class="p-0 col-12 col-sm-12 col-lg-12 col-xl-12 d-flex flex-row align-items-center justify-content-center">
+						<div class="btn-group-toggle p-1">
+							<label class="btn-sm btn btn-lg btn-success">
+								Share 
+								<select name="videoSrc" id="videoSrc" class="bg-success text-white" onchange="updateSrc()">
+									<option value="no" >No</option>
+									<option value="webCam">Web Cam</option>
+									<option value="screen">Screen</option>
+								</select>
+								Video
+							</label>
 						</div>
-						
-						<table class="w-100">
-							<tr>
-								<td style="text-align:right">
-									Your alias:&nbsp;&nbsp;
-								</td>
-								<td>
-									<input type="text" required name="alias">
-								</td>	
-							</tr>
-							<tr>
-								<td style="text-align:right">
-									Your email address:&nbsp;&nbsp;
-								</td>
-								<td>
-									<input type="email" id="email" required name="email">
-								</td>	
-							</tr>
-							
-						</table>
-<% if (typeof roomId=='undefined') {%>						
-						<div class="border border-warning d-flex flex-row justify-content-around p-1">
-							<div class="btn-group-toggle d-flex justify-content-center p-1 w-100">
-								<button class="btn-sm btn btn-lg btn-success" name="action" value="createRoom">Create a meeting</button>
-							</div>
+						<div class="btn-group-toggle p-1">
+							<label class="btn-sm btn btn-lg btn-success">
+								Share Audio
+								<select name="shareAudio" id="shareAudio" class="bg-success text-white">
+									<option value="yes">Yes</option>
+									<option value="no" >No</option>
+								</select>
+							</label>
 						</div>
+					</div>
+				</div>
+				<div class="p-1 row no-gutters">
+					<div class="d-flex p-0 col-5 col-sm-5 col-lg-5 col-xl-5 justify-content-end">
+						Your alias:
+					</div>
+					<div class="p-0 col-7 col-sm-7 col-lg-7 col-xl-7 position-relative">
+						<input type="text" required name="alias" class="w-100 position-absolute">
+					</div>
+				</div>
+				<div class="p-1 row no-gutters">
+					<div class="d-flex p-0 col-5 col-sm-5 col-lg-5 col-xl-5 justify-content-end">
+						Your email address:
+					</div>
+					<div class="p-0 col-7 col-sm-7 col-lg-7 col-xl-7 position-relative">
+						<input type="email" id="email" required name="email" class="w-100 position-absolute">
+					</div>
+				</div>
+				<div class="p-1 row no-gutters">
+					<div class="p-1 col-12 col-sm-12 col-lg-12 col-xl-12 d-flex flex-row justify-content-center">
+<% if (typeof roomId=='undefined') {%>											
+						<button class="btn-sm btn btn-lg btn-success" name="action" value="createRoom">Create a meeting</button>
 <%} else {%>
-						<div class="border border-warning d-flex flex-row justify-content-around p-1">
-							<div class="btn-group-toggle d-flex justify-content-center p-1 w-100">
-								<button class="btn-sm btn btn-lg btn-success" name="action" value="joinRoom">Join a meeting</button>
-							</div>
-						</div>
-<%}%>						
+						<button class="btn-sm btn btn-lg btn-success" name="action" value="joinRoom">Join the meeting</button>
+<%}%>					
+					</div>
+				</div>
+				<div class="p-1 row no-gutters">
+					<div class="p-1 col-12 col-sm-12 col-lg-12 col-xl-12">
 						<div id="message" class="bg-danger text-white">
 						</div>
-					</div>		
+					</div>
 				</div>
 			</div>
 			<input type="hidden" name="roomId" value="<%=((typeof roomId=='undefined')?'':roomId)%>">
