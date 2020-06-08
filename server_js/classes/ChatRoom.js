@@ -33,19 +33,20 @@ class ChatRoom
 		});
 		this.removeUser=((user)=>{
 			delete userList[user.email];
-			broadCastMemberList(user);
+			var data={"memberCount":this.getUserCount(),"member":user}; 
+			broadCastToAllAnotherMember("memberLeaveTheMeeting",user,data);
 		});
 		this.updateSocketId=((user,socketId)=>{
 			socketIdList[user.email]=socketId;
-			userList[user.email]=user;	
-			broadCastMemberList(user);
+			userList[user.email]=user;
+			var data={"memberCount":this.getUserCount(),"newMember":user}; 
+			broadCastToAllAnotherMember("newMemberJoinTheMeeting",user,data);
 		});
-		function broadCastMemberList(user) {
+		function broadCastToAllAnotherMember(eventName,user,data) {
 			Object.keys(userList).forEach((email)=>{
 				if (email!=user.email){
 					var existingUser=userList[email];
-					ioObj.to(existingUser.socketId).emit('updateMemberList',userList);
-					console.log("Email="+email+",socketId="+existingUser.socketId);
+					ioObj.to(existingUser.socketId).emit(eventName,data);
 				}
 			});		
 		}
