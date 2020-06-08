@@ -10,13 +10,13 @@ const { v4: uuidv4 } = require('uuid');
 const ChatRoom=require("./classes/ChatRoom");
 const User=require("./classes/User");
 
-
+/*
 var http = require('http');
 var serverPort = 24;
 server = http.createServer(app);
+*/
 
 
-/*
 var fs = require('fs');
 var https = require('https');
 var options = {
@@ -26,7 +26,7 @@ var options = {
 };
 var serverPort = 443;
 var server = https.createServer(options, app);
-*/
+
 
 server.listen(serverPort, function() {
   console.log('server up and running at %s port', serverPort);
@@ -151,17 +151,24 @@ app.post('/login', function(req, res) {
 	}
 });
 io.on('connection', (socket) => {
+	
+	socket.on("getMemberMediaOffer",(req)=>{
+		console.log("getMemberMediaOffer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail);
+		var room=roomList[req.roomId];
+		room.getMemberMediaOffer(req);
+	});
+	socket.on("send_answer",(req)=>{
+		console.log("send_answer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail);
+	});
+	socket.on('send_offer',(req)=>{
+		console.log("send_offer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail);
+		var room=roomList[req.roomId];
+		room.setMemberMediaOffer(req);
+	});
 	socket.on("updateSocketId",(req)=>{
 		//console.log(data);
 		var room=roomList[req.roomId];
 		req.user.socketId=socket.id;
 		room.updateSocketId(req.user,socket.id);
 	});	
-	socket.on("getMemberMediaOffer",(req)=>{
-		console.log(req);
-		var room=roomList[req.roomId];
-		var reqMemberEmail=req.reqMemberEmail;
-		var targetMemberEmail=req.targetMemberEmail;
-		room.getMemberMediaOffer(reqMemberEmail,req.isHost,targetMemberEmail);
-	});
 });

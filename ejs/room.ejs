@@ -14,6 +14,7 @@
 		<script src="https://kit.fontawesome.com/145b006857.js" crossorigin="anonymous"></script>
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="js/LocalMedia.js"></script>
+		<script src="js/MediaChannel.js"></script>
 		<script>
 			var localMedia=new LocalMedia();
 			var socket = io.connect();
@@ -86,8 +87,6 @@
 			}
 			async function updateSrc(){
 				var videoSrc=document.getElementById("videoSrc");
-				
-				localMedia.setLogger(writeLog);
 				clearVideo();
 				switch ($(videoSrc).val()){
 					case "screen":	var stream=await localMedia.getShareDesktopVideo();
@@ -107,13 +106,48 @@
 									break;
 				}				
 			}
-			socket.on("getMediaOffer",function(reqMemberEmail){
+			socket.on("getMediaOffer",async function(req){
+				var mediaChannel=new MediaChannel();
+				mediaChannel.setLogger(writeLog);
+				mediaChannel.setSocket(socket);
+				mediaChannel.createConnection();
+				try{
+					var offer=await mediaChannel.createOffer();
+					//req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
+					var res={};
+					res["isHost"]=req.isHost;
+					res["roomId"]=req.roomId;
+					res["senderEmail"] = req.receiverEmail;
+					res["receiverEmail"] = req.senderEmail;
+					res["offer"]=offer;
+					socket.emit('send_offer',res);
+					writeLog("Offer send to target "+req.reqMemberEmail+" via server");
+				} catch (error) {
+					writeLog("Failed to get MediaOffer for "+reqMemberEmail+":"+error);
+				}
+			});
+			socket.on("memberMediaOffer",async function(res){
+				var mediaChannel=new MediaChannel();
+				mediaChannel.setLogger(writeLog);
+				mediaChannel.setSocket(socket);
+				mediaChannel.createConnection();
+				try{
+					answer=await mediaChannel.createAnswer(res.offer);
 				
+					//req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
+					req={}
+					req["isHost"]=res.isHost;
+					req["roomId"]=res.roomId;
+					req["answer"]=answer;
+					req["senderEmail"] = res.receiverEmail;
+					req["receiverEmail"] = res.senderEmail;
+					socket.emit('send_answer',req);
+				} catch(error) {
+					writeLog("Failed to create answer for "+res.resMemberEmail+":"+error);
+				}
 			});
 			socket.on("newMemberJoinTheMeeting",function(res){
-				
 				var newMember=res.newMember;
-				var req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","reqMemberEmail":"<%=user.email%>","targetMemberEmail":newMember.email};
 				var item ="<li class=\"media border border-secondary\" id=\""+newMember.email+"\">";
 				if ((<%=isHost%>) && ("<%=user.email%>"==newMember.email))
 					item+="Hosts &nbsp;&nbsp;";
@@ -123,7 +157,7 @@
 				item+=newMember.alias+"</div></li>";
 				$("#memberCount").text("("+res.memberCount+")");
 				$("#memberList").append(item);
-				
+				var req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
 				socket.emit("getMemberMediaOffer",req);
 			});
 			socket.on("memberLeaveTheMeeting",function(data){

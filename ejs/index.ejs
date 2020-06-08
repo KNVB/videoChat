@@ -65,23 +65,23 @@
 			}
 			async function updateSrc(){
 				var videoSrc=document.getElementById("videoSrc");
-				
-				localMedia.setLogger(writeLog);
 				clearVideo();
 				switch ($(videoSrc).val()){
-					case "screen":	var stream=await localMedia.getShareDesktopVideo();
-									if (stream==null) {
-										alert("Fail to get video from share desktop");
-									} else {
+					case "screen":	
+									try{
+										var stream=await localMedia.getShareDesktopVideo();
 										setupVideo(stream);
+									} catch(error) {
+										alert("Fail to get video from share desktop:"+error);
 									}
 									break;
 					
-					case "webCam":	var stream=await localMedia.getWebCamVideo();
-									if (stream==null) {
-										alert("Fail to get video from web cam");
-									} else {
+					case "webCam":	
+									try{
+										var stream=await localMedia.getWebCamVideo();
 										setupVideo(stream);
+									}catch(error) {	
+										alert("Fail to get video from web cam:"+error);
 									}
 									break;
 				}				

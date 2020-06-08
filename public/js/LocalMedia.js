@@ -29,29 +29,14 @@ class LocalMedia{
 		}				
 		async function getShareDesktopVideo(){
 			let stream = null;
-			try {
-				stream = await navigator.mediaDevices.getDisplayMedia({"audio":true,"video":true});
-				/* use the stream */
-			} catch(err) {
-				logger("get Share Desktop Video failure:"+err);
-			}
-			finally {
-				logger("getShareDesktopVideo() complete");
-				return stream
-			}
+			stream = await navigator.mediaDevices.getDisplayMedia({"audio":true,"video":true});
+			return stream;
+			
 		}
 		async function getWebCamVideo() {
 			let stream = null;
-			try {
-				stream = await navigator.mediaDevices.getUserMedia(getConstraints());
-				/* use the stream */
-			} catch(err) {
-				logger("get Web Cam Video failure:"+err);
-			}
-			finally {
-				logger("getWebCamVideo() complete");
-				return stream
-			}
+			stream = await navigator.mediaDevices.getUserMedia(getConstraints());
+			return stream;
 		}		
 	}
 }

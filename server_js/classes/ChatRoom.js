@@ -19,9 +19,10 @@ class ChatRoom
 		this.getHost=(()=>{
 			return host;
 		});
-		this.getMemberMediaOffer=((reqMemberEmail,isHost,targetMemberEmail)=>{
-			var targetMember=userList[targetMemberEmail];
-			ioObj.to(targetMember.socketId).emit("getMediaOffer",reqMemberEmail);
+		this.getMemberMediaOffer=((req)=>{
+			//req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
+			var targetMember=userList[req.receiverEmail];
+			ioObj.to(targetMember.socketId).emit("getMediaOffer",req);
 		});
 		this.getUserCount=(()=>{
 			return Object.keys(userList).length;
@@ -40,6 +41,12 @@ class ChatRoom
 			delete userList[user.email];
 			var data={"memberCount":this.getUserCount(),"member":user}; 
 			broadCastToAllAnotherMember("memberLeaveTheMeeting",user,data);
+		});
+		this.setMemberMediaOffer=((req)=>{
+			//req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
+			var targetMember=userList[req.receiverEmail];
+			var res={"receiverEmail":req.receiverEmail,"isHost":req.isHost,"senderEmail":req.senderEmail,"offer":req.offer};
+			ioObj.to(targetMember.socketId).emit("memberMediaOffer",res);
 		});
 		this.updateSocketId=((user,socketId)=>{
 			socketIdList[user.email]=socketId;
