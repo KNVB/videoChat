@@ -162,6 +162,6 @@ io.on('connection', (socket) => {
 		var room=roomList[req.roomId];
 		var reqMemberEmail=req.reqMemberEmail;
 		var targetMemberEmail=req.targetMemberEmail;
-		room.getMemberMediaOffer(reqMemberEmail,targetMemberEmail);
+		room.getMemberMediaOffer(reqMemberEmail,req.isHost,targetMemberEmail);
 	});
 });

@@ -48,13 +48,8 @@
 
 <%if (isHost) {%>
 				updateSrc();
-<%} else {
-				Object.keys(room.getUserList()).forEach((key)=> {
-					var user=room.getUserList()[key];
-				%>
-					console.log("<%=user.alias%>,<%=key%>");
-<%				});
-}%>				
+<%} else {%>
+<%}%>				
 			});
 			function copyLink() {
 				const el = document.createElement('textarea');
@@ -118,7 +113,7 @@
 			socket.on("newMemberJoinTheMeeting",function(res){
 				
 				var newMember=res.newMember;
-				var req={"roomId":"<%=roomId%>","reqMemberEmail":"<%=user.email%>","targetMemberEmail":newMember.email};
+				var req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","reqMemberEmail":"<%=user.email%>","targetMemberEmail":newMember.email};
 				var item ="<li class=\"media border border-secondary\" id=\""+newMember.email+"\">";
 				if ((<%=isHost%>) && ("<%=user.email%>"==newMember.email))
 					item+="Hosts &nbsp;&nbsp;";

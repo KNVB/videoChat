@@ -19,7 +19,7 @@ class ChatRoom
 		this.getHost=(()=>{
 			return host;
 		});
-		this.getMemberMediaOffer=((reqMemberEmail,targetMemberEmail)=>{
+		this.getMemberMediaOffer=((reqMemberEmail,isHost,targetMemberEmail)=>{
 			var targetMember=userList[targetMemberEmail];
 			ioObj.to(targetMember.socketId).emit("getMediaOffer",reqMemberEmail);
 		});
