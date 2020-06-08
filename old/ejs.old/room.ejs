@@ -1,0 +1,73 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+		<link rel="stylesheet" href="/css/room_style.css">
+		<link rel="stylesheet" href="/css/onoffswitch.css">
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<script>
+			function copyLink() {
+				const el = document.createElement('textarea');
+				el.value = "<%=joinLink%>";
+				document.body.appendChild(el);
+				el.select();
+				document.execCommand('copy');
+				document.body.removeChild(el);
+				alert("The link for this room is copied clipboard");
+			}
+		</script>
+	</head>
+	<body>
+		<div class="rootContainer">
+			<div class="captionRow">
+				<div style="width:50%;border:1px solid pink">
+					Room Name:<%=room.name%><br>
+					This room hosted by:<%=room.getHost().alias%><br>
+				</div>
+			</div>
+			<div class="mainStage">
+			</div>
+			<div class="panel">
+				<div class="switches">
+					<div class="switch">
+						<label>Share Audio:</label>
+						<div class="onoffswitch"> <!-- Refer https://proto.io/freebies/onoff/-->
+							<input type="checkbox" 
+								name="onoffswitch" 
+								class="onoffswitch-checkbox" 
+								id="shareAudio" 
+								onchange="enableShareAudio(this.checked)"
+								checked>
+							<label class="onoffswitch-label" for="shareAudio">
+								<span class="onoffswitch-inner"></span>
+								<span class="onoffswitch-switch"></span>
+							</label>
+						</div>
+					</div>
+					<div class="switch">
+						<label>Share Video:</label>
+						<div class="onoffswitch"><!-- Refer https://proto.io/freebies/onoff/-->
+							<input type="checkbox" 
+								name="onoffswitch" 
+								class="onoffswitch-checkbox" 
+								id="shareVideo" 
+								onchange="enableShareVideo(this.checked)"		
+								checked>
+							<label class="onoffswitch-label" for="shareVideo">
+								<span class="onoffswitch-inner"></span>
+								<span class="onoffswitch-switch"></span>
+							</label>
+						</div>					
+					</div>
+				</div>
+				<div class="buttons">
+						<a class="w3-button w3-blue w3-round-xxlarge" href="/logout?roomId=<%=roomId%>">Logout</a>
+						<a class="w3-button w3-blue w3-round-xxlarge" href="javascript:copyLink()">Copy the link for this room</a>
+				<%	if (isHost){%>		
+						<a class="w3-button w3-blue w3-round-xxlarge" href="/close?roomId=<%=roomId%>">Close the room</a>
+				<%}%>						
+				</div>
+			</div>
+		</div>
+	</body>
+</html>	

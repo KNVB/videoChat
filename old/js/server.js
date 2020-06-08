@@ -6,13 +6,15 @@ var app = express();
 var roomList={};
 var userList={};
 
-var http = require('http');
-var serverPort = 24;
 const { v4: uuidv4 } = require('uuid');
 const User=require("./classes/User");
 
-server = http.createServer(app);
 /*
+var http = require('http');
+var serverPort = 24;
+server = http.createServer(app);
+*/
+
 var fs = require('fs');
 var https = require('https');
 var options = {
@@ -22,7 +24,7 @@ var options = {
 };
 var serverPort = 443;
 var server = https.createServer(options, app);
-*/
+
 
 
 server.listen(serverPort, function() {
@@ -40,7 +42,7 @@ app.use(session({
 }));
 app.set('views', './ejs');
 app.set('view engine', 'ejs');
-app.use('/css', express.static('css'));
+app.use(express.static('public'));
 app.get('/',function (req,res) {
 	try{
 		res.locals.event=req.query.event;

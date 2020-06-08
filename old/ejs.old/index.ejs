@@ -1,0 +1,42 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Video Chat Room</title>
+		<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<script>
+			$( document ).ready(function() {
+				var messageBox=document.getElementById("message");
+<%
+				if 	(typeof event!="undefined") {
+					switch (event) {
+						case "duplicateEmail":%>
+							messageBox.innerHTML="The entered email address(i.e. <%=user.email%>) has been used by another user, please use another one.";
+							document.getElementById("email").focus();
+<%							break;
+						case "logoutSuccess":%>
+							messageBox.innerHTML="<%=alias%> has logged out successfully.";
+<%							break;
+						case "invalidAccess":%>
+							messageBox.innerHTML="You have to login to use this service.";		
+<%							break;						
+					}
+				}
+%>				
+			});
+		</script>	
+	</head>	
+	<body>
+		<p class="w3-xlarge w3-margin-left">Chat Room Landing Page</p>
+		<form method="post" action="/login" class="w3-container">
+			<label for="alias">Nick name/Alias:</label>
+			<input class="w3-input" type=text required name="alias" value="<%=((typeof user=='undefined')?'':user.alias)%>"><br>
+			<label for="email">Email Address:</label>
+			<input class="w3-input" type=email id="email" required name="email" value="<%=((typeof user=='undefined')?'':user.email)%>"><br>
+			<button class="w3-button w3-blue w3-round-xxlarge" type="submit">Login</button>
+			<input type=hidden name="roomId" value="<%=((typeof roomId=='undefined')?'':roomId)%>">
+		</form>
+		<div class="w3-red" id="message">
+		</div>
+	</body>
+</html>	
