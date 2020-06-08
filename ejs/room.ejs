@@ -13,10 +13,9 @@
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 		<script src="https://kit.fontawesome.com/145b006857.js" crossorigin="anonymous"></script>
 		<script src="/socket.io/socket.io.js"></script>
-		<script src="js/webrtc.js"></script>
-
+		<script src="js/LocalMedia.js"></script>
 		<script>
-			var webRTC=new WebRTC();
+			var localMedia=new LocalMedia();
 			var socket = io.connect();
 			$( document ).ready(function(){
 				$("#audioSrcLabel").click(function (){
@@ -50,6 +49,8 @@
 				$("#videoSrc").val("<%=user.shareMedia.videoSrc%>");
 				$("#shareAudio").val("<%=user.shareMedia.shareAudio%>");
 				updateSrc();
+<%} else {%>
+			
 <%}%>				
 			});
 			function copyLink() {
@@ -88,10 +89,10 @@
 			async function updateSrc(){
 				var videoSrc=document.getElementById("videoSrc");
 				
-				webRTC.setLogger(writeLog);
+				localMedia.setLogger(writeLog);
 				clearVideo();
 				switch ($(videoSrc).val()){
-					case "screen":	var stream=await webRTC.getShareDesktopVideo();
+					case "screen":	var stream=await localMedia.getShareDesktopVideo();
 									if (stream==null) {
 										alert("Fail to get video from share desktop");
 									} else {
@@ -99,7 +100,7 @@
 									}
 									break;
 					
-					case "webCam":	var stream=await webRTC.getWebCamVideo();
+					case "webCam":	var stream=await localMedia.getWebCamVideo();
 									if (stream==null) {
 										alert("Fail to get video from web cam");
 									} else {
@@ -130,7 +131,7 @@
 					
 					https://api.jquery.com/category/selectors/
 				*/
-				$(document.getElementById(email)).remove();
+				document.getElementById(email).remove(); //To prevent the above problem, I use DOM to remove the element.
 			});
 <%if (isHost) {%>
 			function closeTheMeeting(){

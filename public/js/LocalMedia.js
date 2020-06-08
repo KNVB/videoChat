@@ -1,4 +1,4 @@
-class WebRTC{
+class LocalMedia{
 	constructor() {
 		var configuration = {iceServers: 
 			[{urls: "stun:stun.stunprotocol.org"},
