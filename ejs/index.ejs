@@ -64,27 +64,20 @@
 				});
 			}
 			async function updateSrc(){
+				var shareAudio=document.getElementById("shareAudio");
 				var videoSrc=document.getElementById("videoSrc");
+				
 				clearVideo();
-				switch ($(videoSrc).val()){
-					case "screen":	
-									try{
-										var stream=await localMedia.getShareDesktopVideo();
-										setupVideo(stream);
-									} catch(error) {
-										alert("Fail to get video from share desktop:"+error);
-									}
-									break;
-					
-					case "webCam":	
-									try{
-										var stream=await localMedia.getWebCamVideo();
-										setupVideo(stream);
-									}catch(error) {	
-										alert("Fail to get video from web cam:"+error);
-									}
-									break;
-				}				
+				if (($(videoSrc).val()!="no") || ($(shareAudio).val()=="yes")) {
+					try{
+						var stream=await localMedia.getStream($(videoSrc).val(),$(shareAudio).val());
+						if (stream!=null){
+							setupVideo(stream);
+						}
+					}catch (error) {
+						alert("Fail to get Media Stream:"+error);
+					}					
+				}
 			}
 			function writeLog(message){
 				console.log(message);
@@ -131,7 +124,7 @@
 						<div class="btn-group-toggle p-1">
 							<label class="btn-sm btn btn-lg btn-success">
 								Share Audio
-								<select name="shareAudio" id="shareAudio" class="bg-success text-white">
+								<select name="shareAudio" id="shareAudio" class="bg-success text-white" onchange="updateSrc()">
 									<option value="yes">Yes</option>
 									<option value="no" >No</option>
 								</select>

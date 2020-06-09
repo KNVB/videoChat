@@ -154,7 +154,7 @@ io.on('connection', (socket) => {
 	socket.on("get_offer",(channelInfo)=>{
 		var room=roomList[channelInfo.roomId];		
 		room.getOffer(channelInfo);
-		console.log("server: Server sent an offer request from "+channelInfo.senderEmail+" to "+ channelInfo.receiverEmail+".");
+		console.log("server:"+channelInfo.senderEmail+" offer request is sent to "+ channelInfo.receiverEmail+".");
 	});
 	socket.on("send_answer",(req)=>{
 		var channelInfo=req.channelInfo;
