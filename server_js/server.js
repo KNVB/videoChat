@@ -10,13 +10,13 @@ const { v4: uuidv4 } = require('uuid');
 const ChatRoom=require("./classes/ChatRoom");
 const User=require("./classes/User");
 
-/*
+
 var http = require('http');
 var serverPort = 24;
 server = http.createServer(app);
-*/
 
 
+/*
 var fs = require('fs');
 var https = require('https');
 var options = {
@@ -26,7 +26,7 @@ var options = {
 };
 var serverPort = 443;
 var server = https.createServer(options, app);
-
+*/
 
 server.listen(serverPort, function() {
   console.log('server up and running at %s port', serverPort);
@@ -153,17 +153,24 @@ app.post('/login', function(req, res) {
 io.on('connection', (socket) => {
 	
 	socket.on("getMemberMediaOffer",(req)=>{
-		console.log("getMemberMediaOffer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail);
+		console.log("getMemberMediaOffer:"+JSON.stringify(req));
 		var room=roomList[req.roomId];
 		room.getMemberMediaOffer(req);
 	});
 	socket.on("send_answer",(req)=>{
-		console.log("send_answer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail);
+		console.log("send_answer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail+",roomId="+req.roomId);
+		var room=roomList[req.roomId];
+		room.sendAnswer(req);
+	});
+	socket.on('send_ice_candidate',(req)=>{
+		console.log("send_ice_candidate:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail+",roomId="+req.roomId);
+		var room=roomList[req.roomId];
+		room.sendICECandidate(req);
 	});
 	socket.on('send_offer',(req)=>{
-		console.log("send_offer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail);
+		console.log("send_offer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail+",roomId="+req.roomId);
 		var room=roomList[req.roomId];
-		room.setMemberMediaOffer(req);
+		room.sendOffer(req);
 	});
 	socket.on("updateSocketId",(req)=>{
 		//console.log(data);

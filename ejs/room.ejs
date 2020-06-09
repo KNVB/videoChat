@@ -17,7 +17,10 @@
 		<script src="js/MediaChannel.js"></script>
 		<script>
 			var localMedia=new LocalMedia();
+			var mediaChannel=new MediaChannel();
 			var socket = io.connect();
+			
+
 			$( document ).ready(function(){
 				$("#audioSrcLabel").click(function (){
 					if ($(this).hasClass("active")) {
@@ -43,6 +46,8 @@
 						copyLink();
 					}
 				});
+				mediaChannel.setLogger(writeLog);
+				mediaChannel.setSocket(socket);
 				socket.emit("updateSocketId",{"user":<%-JSON.stringify(user)%>,"roomId":"<%=roomId%>"});
 				$("#videoSrc").val("<%=user.shareMedia.videoSrc%>");
 				$("#shareAudio").val("<%=user.shareMedia.shareAudio%>");
@@ -107,36 +112,38 @@
 				}				
 			}
 			socket.on("getMediaOffer",async function(req){
-				var mediaChannel=new MediaChannel();
-				mediaChannel.setLogger(writeLog);
-				mediaChannel.setSocket(socket);
 				mediaChannel.createConnection();
 				try{
 					var offer=await mediaChannel.createOffer();
 					//req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
 					var res={};
-					res["isHost"]=req.isHost;
+					res["senderIsHost"]="<%=isHost%>";
 					res["roomId"]=req.roomId;
 					res["senderEmail"] = req.receiverEmail;
 					res["receiverEmail"] = req.senderEmail;
+					res["receiverIsHost"]=req.senderIsHost;
+					mediaChannel.setChannelInfo(res);
 					res["offer"]=offer;
 					socket.emit('send_offer',res);
-					writeLog("Offer send to target "+req.reqMemberEmail+" via server");
+					writeLog("Offer send to target "+req.senderEmail+" via server");
 				} catch (error) {
-					writeLog("Failed to get MediaOffer for "+reqMemberEmail+":"+error);
+					writeLog("Failed to get MediaOffer for "+req.senderEmail+":"+error);
 				}
 			});
-			socket.on("memberMediaOffer",async function(res){
-				var mediaChannel=new MediaChannel();
-				mediaChannel.setLogger(writeLog);
-				mediaChannel.setSocket(socket);
-				mediaChannel.createConnection();
+			socket.on("receiveAnswer",async function(res){
+				try {
+					await mediaChannel.setRemoteDescription(res.answer);
+				} catch(error) {
+					writeLog("Failed to set setRemoteDescription for "+res.senderEmail+":"+error);
+				}	
+			});
+			socket.on("receiveOffer",async function(res){
 				try{
 					answer=await mediaChannel.createAnswer(res.offer);
-				
+					writeLog(answer);
 					//req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
 					req={}
-					req["isHost"]=res.isHost;
+					req["senderIsHost"]="<%=isHost%>";
 					req["roomId"]=res.roomId;
 					req["answer"]=answer;
 					req["senderEmail"] = res.receiverEmail;
@@ -157,7 +164,15 @@
 				item+=newMember.alias+"</div></li>";
 				$("#memberCount").text("("+res.memberCount+")");
 				$("#memberList").append(item);
-				var req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
+				var req={};
+				req["receiverEmail"]=newMember.email;
+				req["receiverIsHost"]=res.isHost;
+				req["senderIsHost"]="<%=isHost%>";
+				req["senderEmail"]="<%=user.email%>";
+				req["roomId"]="<%=roomId%>";
+				
+				mediaChannel.createConnection();
+				mediaChannel.setChannelInfo(req);				
 				socket.emit("getMemberMediaOffer",req);
 			});
 			socket.on("memberLeaveTheMeeting",function(data){

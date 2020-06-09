@@ -11,12 +11,15 @@ class MediaChannel{
 			iceRestart: true
 		};
 		var dataChannel,logger,pc,socket;
+		var channelInfo;
 		this.createAnswer=(async (offer)=>{
 			await pc.setRemoteDescription(offer);
 			var answer=await pc.createAnswer();
+			await pc.setLocalDescription(answer);
 			return answer;
 		});
 		this.createConnection=(()=>{
+			
 			pc = new RTCPeerConnection(webRTCConfiguration);
 			pc.onclose =handleClose; 
 			pc.onconnectionstatechange = handleConnectionStateChange;
@@ -35,9 +38,15 @@ class MediaChannel{
 			await pc.setLocalDescription(offer);
 			return offer;
 		});
-		
+		this.setChannelInfo=((ci)=>{
+			channelInfo=ci;
+			logger("channelInfo="+JSON.stringify(ci));
+		});
 		this.setLogger=((wl)=>{
 			logger=wl;
+		});
+		this.setRemoteDescription=(async (answer)=>{
+			await pc.setRemoteDescription(answer);
 		});
 		this.setSocket=((s)=>{
 			socket=s;
@@ -101,7 +110,9 @@ class MediaChannel{
 				logger("All ICE Candidates are sent");
 			} else {
 				logger("Send ICE Candidate");
-				socket.emit('send_ice',event.candidate);
+				var req=JSON.parse(JSON.stringify(channelInfo));
+				req["iceCandidate"]=event.candidate;
+				socket.emit('send_ice_candidate',req);
 			}
 		}
 		function handleICEConnectionStateChange(event) {
