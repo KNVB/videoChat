@@ -10,13 +10,13 @@ const { v4: uuidv4 } = require('uuid');
 const ChatRoom=require("./classes/ChatRoom");
 const User=require("./classes/User");
 
-
+/*
 var http = require('http');
 var serverPort = 24;
 server = http.createServer(app);
+*/
 
 
-/*
 var fs = require('fs');
 var https = require('https');
 var options = {
@@ -26,7 +26,7 @@ var options = {
 };
 var serverPort = 443;
 var server = https.createServer(options, app);
-*/
+
 
 server.listen(serverPort, function() {
   console.log('server up and running at %s port', serverPort);
