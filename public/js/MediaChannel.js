@@ -45,6 +45,9 @@ class MediaChannel{
 		this.getChannelInfo=(()=>{
 			return channelInfo;
 		});
+		this.hangUp=(()=>{
+			hangUp();
+		});
 		this.setLogger=((wl)=>{
 			logger=wl;
 		});
@@ -159,6 +162,15 @@ class MediaChannel{
 			logger("pc.signalingState="+pc.signalingState);
 			if(pc.signalingState=="stable"){
 				logger("ICE negotiation complete");
+			}
+		}
+		function hangUp(){
+			logger("MediaChannel:Hang Up");
+			if (dataChannel) {
+				dataChannel.close();
+			}
+			if (pc) {
+				pc.close();
 			}
 		}
 		function receiveAnswer(answer) {

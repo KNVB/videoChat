@@ -151,6 +151,12 @@
 					writeLog("Failed to get MediaOffer for "+req.senderEmail+":"+error);
 				}	
 			});
+			socket.on("memberLeaveTheMeeting",function(req){
+				var user=req.member;
+				var memberCount=req.memberCount;
+				$("#memberCount").text("("+req.memberCount+")");
+				document.getElementById(user.email).remove();
+			});
 			socket.on("newMemberJoinTheMeeting",function(res){
 				var newMember=res.newMember;
 				var item ="<li class=\"media border border-secondary\" id=\""+newMember.email+"\">";
