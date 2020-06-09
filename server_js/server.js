@@ -151,31 +151,31 @@ app.post('/login', function(req, res) {
 	}
 });
 io.on('connection', (socket) => {
-	socket.on("get_offer",(req)=>{
-		var room=roomList[req.roomId];		
-		room.getOffer(req);
-		console.log("server:"+req.senderEmail+" got "+ req.receiverEmail+" offer.");
+	socket.on("get_offer",(channelInfo)=>{
+		var room=roomList[channelInfo.roomId];		
+		room.getOffer(channelInfo);
+		console.log("server: Server sent an offer request from "+channelInfo.senderEmail+" to "+ channelInfo.receiverEmail+".");
 	});
 	socket.on("send_answer",(req)=>{
 		var channelInfo=req.channelInfo;
 		var room=roomList[channelInfo.roomId];
 		
 		room.sendAnswer(req);
-		console.log("server:"+channelInfo.senderEmail+" sent answer to "+ channelInfo.receiverEmail);
+		console.log("server:"+channelInfo.senderEmail+" sent answer to "+ channelInfo.receiverEmail+".");
 	});
 	socket.on('send_ice_candidate',(req)=>{
 		var channelInfo=req.channelInfo;
 		var room=roomList[channelInfo.roomId];
 		
 		room.sendICECandidate(req);
-		console.log("server:"+channelInfo.senderEmail+" sent ICE Candidate to "+ channelInfo.receiverEmail);
+		console.log("server:"+channelInfo.senderEmail+" sent an ICE Candidate to "+ channelInfo.receiverEmail+".");
 	});	
 	socket.on('send_offer',(req)=>{
 		var channelInfo=req.channelInfo;
 		var room=roomList[channelInfo.roomId];
 		
 		room.sendOffer(req);
-		console.log("server:"+channelInfo.senderEmail+" sent offer to "+ channelInfo.receiverEmail);
+		console.log("server:"+channelInfo.senderEmail+" sent an offer to "+ channelInfo.receiverEmail+".");
 	});
 	socket.on("update_socket_id",(req)=>{
 		//console.log(data);
