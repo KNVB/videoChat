@@ -151,28 +151,33 @@ app.post('/login', function(req, res) {
 	}
 });
 io.on('connection', (socket) => {
-	
-	socket.on("getMemberMediaOffer",(req)=>{
-		console.log("getMemberMediaOffer:"+JSON.stringify(req));
-		var room=roomList[req.roomId];
-		room.getMemberMediaOffer(req);
+	socket.on("get_offer",(req)=>{
+		var room=roomList[req.roomId];		
+		room.getOffer(req);
+		console.log("server:"+req.senderEmail+" got "+ req.receiverEmail+" offer.");
 	});
 	socket.on("send_answer",(req)=>{
-		console.log("send_answer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail+",roomId="+req.roomId);
-		var room=roomList[req.roomId];
+		var channelInfo=req.channelInfo;
+		var room=roomList[channelInfo.roomId];
+		
 		room.sendAnswer(req);
+		console.log("server:"+channelInfo.senderEmail+" sent answer to "+ channelInfo.receiverEmail);
 	});
 	socket.on('send_ice_candidate',(req)=>{
-		console.log("send_ice_candidate:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail+",roomId="+req.roomId);
-		var room=roomList[req.roomId];
+		var channelInfo=req.channelInfo;
+		var room=roomList[channelInfo.roomId];
+		
 		room.sendICECandidate(req);
-	});
+		console.log("server:"+channelInfo.senderEmail+" sent ICE Candidate to "+ channelInfo.receiverEmail);
+	});	
 	socket.on('send_offer',(req)=>{
-		console.log("send_offer:senderEmail="+req.senderEmail+",receiverEmail="+req.receiverEmail+",roomId="+req.roomId);
-		var room=roomList[req.roomId];
+		var channelInfo=req.channelInfo;
+		var room=roomList[channelInfo.roomId];
+		
 		room.sendOffer(req);
+		console.log("server:"+channelInfo.senderEmail+" sent offer to "+ channelInfo.receiverEmail);
 	});
-	socket.on("updateSocketId",(req)=>{
+	socket.on("update_socket_id",(req)=>{
 		//console.log(data);
 		var room=roomList[req.roomId];
 		req.user.socketId=socket.id;

@@ -13,11 +13,12 @@
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 		<script src="https://kit.fontawesome.com/145b006857.js" crossorigin="anonymous"></script>
 		<script src="/socket.io/socket.io.js"></script>
+		<script src="js/ChannelInfo.js"></script>
 		<script src="js/LocalMedia.js"></script>
 		<script src="js/MediaChannel.js"></script>
 		<script>
 			var localMedia=new LocalMedia();
-			var mediaChannel=new MediaChannel();
+			var mediaChannel;
 			var socket = io.connect();
 			
 
@@ -46,9 +47,8 @@
 						copyLink();
 					}
 				});
-				mediaChannel.setLogger(writeLog);
-				mediaChannel.setSocket(socket);
-				socket.emit("updateSocketId",{"user":<%-JSON.stringify(user)%>,"roomId":"<%=roomId%>"});
+			
+				socket.emit("update_socket_id",{"user":<%-JSON.stringify(user)%>,"roomId":"<%=roomId%>"});
 				$("#videoSrc").val("<%=user.shareMedia.videoSrc%>");
 				$("#shareAudio").val("<%=user.shareMedia.shareAudio%>");
 
@@ -79,6 +79,12 @@
 				var arr = url.split("/");
 				var result = arr[0] + "//" + arr[2]+"/joinRoom?roomId=<%=roomId%>";
 				return result;
+			}
+			function initMediaChannel(ci) {
+				mediaChannel=new MediaChannel(ci);
+				mediaChannel.createConnection();
+				mediaChannel.setLogger(writeLog);
+				mediaChannel.setSocket(socket);
 			}
 			function setupVideo(stream){
 				selfView.srcObject=stream;
@@ -111,47 +117,39 @@
 									break;
 				}				
 			}
-			socket.on("getMediaOffer",async function(req){
-				mediaChannel.createConnection();
+			function writeLog(message){
+				console.log(message);
+			}
+//------------------------------------------------------------------------------------------------						
+<%if (isHost) {%>
+			function closeTheMeeting(){
+				clearVideo();
+				document.getElementById("closeMeetingForm").submit();
+			}			
+<%} else {%>
+			function leaveTheMeeting(){
+				clearVideo();
+				document.getElementById("leaveMeetingForm").submit();
+			}
+<%}%>								
+//------------------------------------------------------------------------------------------------
+			socket.on("getOffer",async function (req){
+				var channelInfo=new ChannelInfo();
+				channelInfo.roomId="<%=roomId%>";
+				channelInfo.receiverEmail=req.senderEmail;
+				channelInfo.receiverIsHost=req.senderIsHost;
+				channelInfo.senderEmail="<%=user.email%>";
+				channelInfo.senderIsHost="<%=isHost%>";
+				initMediaChannel(channelInfo);
 				try{
-					var offer=await mediaChannel.createOffer();
-					//req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
 					var res={};
-					res["senderIsHost"]="<%=isHost%>";
-					res["roomId"]=req.roomId;
-					res["senderEmail"] = req.receiverEmail;
-					res["receiverEmail"] = req.senderEmail;
-					res["receiverIsHost"]=req.senderIsHost;
-					mediaChannel.setChannelInfo(res);
-					res["offer"]=offer;
+					res["channelInfo"]=channelInfo;
+					res["offer"]=await mediaChannel.createOffer();
 					socket.emit('send_offer',res);
 					writeLog("Offer send to target "+req.senderEmail+" via server");
-				} catch (error) {
+				}catch (error) {
 					writeLog("Failed to get MediaOffer for "+req.senderEmail+":"+error);
-				}
-			});
-			socket.on("receiveAnswer",async function(res){
-				try {
-					await mediaChannel.setRemoteDescription(res.answer);
-				} catch(error) {
-					writeLog("Failed to set setRemoteDescription for "+res.senderEmail+":"+error);
 				}	
-			});
-			socket.on("receiveOffer",async function(res){
-				try{
-					answer=await mediaChannel.createAnswer(res.offer);
-					writeLog(answer);
-					//req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
-					req={}
-					req["senderIsHost"]="<%=isHost%>";
-					req["roomId"]=res.roomId;
-					req["answer"]=answer;
-					req["senderEmail"] = res.receiverEmail;
-					req["receiverEmail"] = res.senderEmail;
-					socket.emit('send_answer',req);
-				} catch(error) {
-					writeLog("Failed to create answer for "+res.resMemberEmail+":"+error);
-				}
 			});
 			socket.on("newMemberJoinTheMeeting",function(res){
 				var newMember=res.newMember;
@@ -164,43 +162,45 @@
 				item+=newMember.alias+"</div></li>";
 				$("#memberCount").text("("+res.memberCount+")");
 				$("#memberList").append(item);
-				var req={};
-				req["receiverEmail"]=newMember.email;
-				req["receiverIsHost"]=res.isHost;
-				req["senderIsHost"]="<%=isHost%>";
-				req["senderEmail"]="<%=user.email%>";
-				req["roomId"]="<%=roomId%>";
 				
-				mediaChannel.createConnection();
-				mediaChannel.setChannelInfo(req);				
-				socket.emit("getMemberMediaOffer",req);
+				var channelInfo=new ChannelInfo();
+				channelInfo.roomId="<%=roomId%>";
+				channelInfo.receiverEmail=newMember.email;
+				channelInfo.receiverIsHost=res.newUserIsHost;
+				channelInfo.senderEmail="<%=user.email%>";
+				channelInfo.senderIsHost="<%=isHost%>";
+				initMediaChannel(channelInfo);
+				socket.emit("get_offer",channelInfo);
 			});
-			socket.on("memberLeaveTheMeeting",function(data){
-				var email=data.member.email;
-				$("#memberCount").text("("+data.memberCount+")");
-				/*
-					To use any of the meta-characters ( such as  !"#$%&'()*+,./:;<=>?@[\]^`{|}~ ) as a literal part of 
-					a name, it must be escaped with with two backslashes: \\. For example, an element with id="foo.bar", 
-					can use the selector $("#foo\\.bar"). 
-					
-					https://api.jquery.com/category/selectors/
-				*/
-				document.getElementById(email).remove(); //To prevent the above problem, I use DOM to remove the element.
+			socket.on("receiveAnswer",async function(res){
+				var channelInfo=mediaChannel.getChannelInfo();
+				try {
+					await mediaChannel.setRemoteDescription(res.answer);
+				} catch(error) {
+					writeLog("Failed to set setRemoteDescription for "+channelInfo.receiverEmail+":"+error);
+				}	
 			});
-<%if (isHost) {%>
-			function closeTheMeeting(){
-				clearVideo();
-				document.getElementById("closeMeetingForm").submit();
-			}			
-<%} else {%>
-			function leaveTheMeeting(){
-				clearVideo();
-				document.getElementById("leaveMeetingForm").submit();
-			}
-<%}%>								
-			function writeLog(message){
-				console.log(message);
-			}
+			socket.on("receiveICECandidate",async function(res){
+				var channelInfo=mediaChannel.getChannelInfo();
+				try{
+					await mediaChannel.addICECandidate(res.iceCandidate);
+					writeLog("An ICE candidate for "+channelInfo.receiverEmail+" is added successfully.");
+				} catch (error) {
+					writeLog("Failed to add ICE candidate for "+channelInfo.receiverEmail+":"+error);
+				}				
+			});
+			socket.on("receiveOffer",async function(res){
+				try{
+					var answer=await mediaChannel.createAnswer(res.offer);
+					var channelInfo=mediaChannel.getChannelInfo();
+					var req={};
+					req["answer"]=answer;
+					req["channelInfo"]=mediaChannel.getChannelInfo();
+					socket.emit('send_answer',req);
+				}catch(error) {
+					writeLog("Failed to create answer for "+res.resMemberEmail+":"+error);
+				}	
+			});			
 		</script>
 		<style>
 			video{

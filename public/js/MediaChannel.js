@@ -1,5 +1,5 @@
 class MediaChannel{
-	constructor(){
+	constructor(ci){
 		var webRTCConfiguration = {iceServers: 
 			[{urls: "stun:stun.stunprotocol.org"},
 			 {urls: "stun:stun.l.google.com:19302"},
@@ -11,7 +11,11 @@ class MediaChannel{
 			iceRestart: true
 		};
 		var dataChannel,logger,pc,socket;
-		var channelInfo;
+		var channelInfo=ci;
+		
+		this.addICECandidate=((iceCandidate)=>{
+			pc.addIceCandidate(iceCandidate)
+		});
 		this.createAnswer=(async (offer)=>{
 			await pc.setRemoteDescription(offer);
 			var answer=await pc.createAnswer();
@@ -38,9 +42,8 @@ class MediaChannel{
 			await pc.setLocalDescription(offer);
 			return offer;
 		});
-		this.setChannelInfo=((ci)=>{
-			channelInfo=ci;
-			logger("channelInfo="+JSON.stringify(ci));
+		this.getChannelInfo=(()=>{
+			return channelInfo;
 		});
 		this.setLogger=((wl)=>{
 			logger=wl;
@@ -110,7 +113,8 @@ class MediaChannel{
 				logger("All ICE Candidates are sent");
 			} else {
 				logger("Send ICE Candidate");
-				var req=JSON.parse(JSON.stringify(channelInfo));
+				var req={};
+				req["channelInfo"]=JSON.parse(JSON.stringify(channelInfo));
 				req["iceCandidate"]=event.candidate;
 				socket.emit('send_ice_candidate',req);
 			}
