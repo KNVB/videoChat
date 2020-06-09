@@ -172,17 +172,6 @@ class MediaChannel{
 			if (pc) {
 				pc.close();
 			}
-		}
-		function receiveAnswer(answer) {
-			pc.setRemoteDescription(answer)
-			.then(()=>
-				{
-					logger("1 Set Remote Description Success");
-				})
-			.catch((error)=>
-				{
-					logger("1 Set Remote Description Failure:"+error);
-				});
-		}
+		}		
 	}		
 }

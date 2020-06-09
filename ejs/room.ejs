@@ -18,7 +18,7 @@
 		<script src="js/MediaChannel.js"></script>
 		<script>
 			var localMedia=new LocalMedia();
-			var mediaChannel;
+			var mediaChannelList={};
 			var socket = io.connect();
 			
 
@@ -81,10 +81,11 @@
 				return result;
 			}
 			function initMediaChannel(ci) {
-				mediaChannel=new MediaChannel(ci);
+				var mediaChannel=new MediaChannel(ci);
 				mediaChannel.createConnection();
 				mediaChannel.setLogger(writeLog);
 				mediaChannel.setSocket(socket);
+				mediaChannelList[ci.receiverEmail]=mediaChannel;
 			}
 			function setupVideo(stream){
 				selfView.srcObject=stream;
@@ -142,18 +143,20 @@
 				channelInfo.senderIsHost="<%=isHost%>";
 				initMediaChannel(channelInfo);
 				try{
+					var mediaChannel=mediaChannelList[channelInfo.receiverEmail];
 					var res={};
 					res["channelInfo"]=channelInfo;
 					res["offer"]=await mediaChannel.createOffer();
 					socket.emit('send_offer',res);
-					writeLog("Offer send to target "+req.senderEmail+" via server");
+					writeLog("An offer sent to "+channelInfo.receiverEmail+" via server");
 				}catch (error) {
-					writeLog("Failed to get MediaOffer for "+req.senderEmail+":"+error);
+					writeLog("Failed to get MediaOffer for "+channelInfo.receiverEmail+":"+error);
 				}	
 			});
 			socket.on("memberLeaveTheMeeting",function(req){
 				var user=req.member;
 				var memberCount=req.memberCount;
+				writeLog("User "+user.email+" leave the meeting room");
 				$("#memberCount").text("("+req.memberCount+")");
 				document.getElementById(user.email).remove();
 			});
@@ -179,33 +182,39 @@
 				socket.emit("get_offer",channelInfo);
 			});
 			socket.on("receiveAnswer",async function(res){
+				var mediaChannel=mediaChannelList[res.channelInfo.senderEmail];
 				var channelInfo=mediaChannel.getChannelInfo();
 				try {
+					writeLog("An answer for "+channelInfo.receiverEmail+" is received.");
 					await mediaChannel.setRemoteDescription(res.answer);
 				} catch(error) {
 					writeLog("Failed to set setRemoteDescription for "+channelInfo.receiverEmail+":"+error);
-				}	
+				}
 			});
 			socket.on("receiveICECandidate",async function(res){
+				var mediaChannel=mediaChannelList[res.channelInfo.senderEmail];
 				var channelInfo=mediaChannel.getChannelInfo();
 				try{
 					await mediaChannel.addICECandidate(res.iceCandidate);
 					writeLog("An ICE candidate for "+channelInfo.receiverEmail+" is added successfully.");
 				} catch (error) {
 					writeLog("Failed to add ICE candidate for "+channelInfo.receiverEmail+":"+error);
-				}				
+				}			
 			});
 			socket.on("receiveOffer",async function(res){
 				try{
+					var mediaChannel=mediaChannelList[res.channelInfo.senderEmail];
 					var answer=await mediaChannel.createAnswer(res.offer);
 					var channelInfo=mediaChannel.getChannelInfo();
 					var req={};
+					writeLog("An offer from "+channelInfo.receiverEmail+" received.");
 					req["answer"]=answer;
 					req["channelInfo"]=mediaChannel.getChannelInfo();
 					socket.emit('send_answer',req);
+					writeLog("An answer for "+channelInfo.receiverEmail+" is sent.");
 				}catch(error) {
-					writeLog("Failed to create answer for "+res.resMemberEmail+":"+error);
-				}	
+					writeLog("Failed to create answer for "+channelInfo.receiverEmail+":"+error);
+				}
 			});			
 		</script>
 		<style>
