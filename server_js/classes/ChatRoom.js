@@ -4,7 +4,6 @@ class ChatRoom
 	constructor(hostUser) {
 		var host;
 		var ioObj;
-		var socketIdList={};
 		var userList={};
 		
 		host=hostUser;
@@ -38,7 +37,6 @@ class ChatRoom
 			}				
 		});
 		this.removeUser=((user)=>{
-			delete socketIdList[user.email];
 			delete userList[user.email];
 			var data={"memberCount":this.getUserCount(),"member":user}; 
 			broadCastToAllAnotherMember("memberLeaveTheMeeting",user,data);
@@ -74,7 +72,7 @@ class ChatRoom
 			console.log("ChatRoom:"+channelInfo.senderEmail+" sent offer to "+ channelInfo.receiverEmail);
 		});
 		this.updateSocketId=((user,socketId)=>{
-			socketIdList[user.email]=socketId;
+			user.socketId=socketId;
 			userList[user.email]=user;
 			var data={"memberCount":this.getUserCount(),"newMember":user}; 
 			data["newUserIsHost"]=this.isHost(user); 
@@ -89,7 +87,6 @@ class ChatRoom
 			});		
 		}
 		function addUser(user){
-			socketIdList[user.email]=user.socketId;	
 			userList[user.email]=user;	
 		}
 	}

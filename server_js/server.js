@@ -103,7 +103,7 @@ app.post('/leaveTheMeeting', function(req, res) {
 		delete userList[email];
 		req.session.user=user;
 		res.redirect("/?event=logoutSuccess");
-
+		console.log("Server:"+user.email+" has left the room where room id:"+roomId);
 	} catch (error) {
 		res.send ("Something Wrong in /leaveTheMeeting:"+error);
 	}
@@ -150,31 +150,32 @@ app.post('/login', function(req, res) {
 	}
 });
 io.on('connection', (socket) => {
+	
 	socket.on("get_offer",(channelInfo)=>{
 		var room=roomList[channelInfo.roomId];		
 		room.getOffer(channelInfo);
-		console.log("server:"+channelInfo.senderEmail+" offer request is sent to "+ channelInfo.receiverEmail+".");
+		console.log("Server:"+channelInfo.senderEmail+" offer request is sent to "+ channelInfo.receiverEmail+".");
 	});
 	socket.on("send_answer",(req)=>{
 		var channelInfo=req.channelInfo;
 		var room=roomList[channelInfo.roomId];
 		
 		room.sendAnswer(req);
-		console.log("server:"+channelInfo.senderEmail+" sent answer to "+ channelInfo.receiverEmail+".");
+		console.log("Server:"+channelInfo.senderEmail+" sent answer to "+ channelInfo.receiverEmail+".");
 	});
 	socket.on('send_ice_candidate',(req)=>{
 		var channelInfo=req.channelInfo;
 		var room=roomList[channelInfo.roomId];
 		
 		room.sendICECandidate(req);
-		console.log("server:"+channelInfo.senderEmail+" sent an ICE Candidate to "+ channelInfo.receiverEmail+".");
+		console.log("Server:"+channelInfo.senderEmail+" sent an ICE Candidate to "+ channelInfo.receiverEmail+".");
 	});	
 	socket.on('send_offer',(req)=>{
 		var channelInfo=req.channelInfo;
 		var room=roomList[channelInfo.roomId];
 		
 		room.sendOffer(req);
-		console.log("server:"+channelInfo.senderEmail+" sent an offer to "+ channelInfo.receiverEmail+".");
+		console.log("Server:"+channelInfo.senderEmail+" sent an offer to "+ channelInfo.receiverEmail+".");
 	});
 	socket.on("update_socket_id",(req)=>{
 		//console.log(data);
