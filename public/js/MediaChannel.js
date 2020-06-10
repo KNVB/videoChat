@@ -23,7 +23,6 @@ class MediaChannel{
 			return answer;
 		});
 		this.createConnection=(()=>{
-			
 			pc = new RTCPeerConnection(webRTCConfiguration);
 			pc.onclose =handleClose; 
 			pc.onconnectionstatechange = handleConnectionStateChange;
@@ -58,7 +57,7 @@ class MediaChannel{
 			socket=s;
 		});
 
-		
+//-----------------------------------------------------------------------------------------------		
 		function dataChannelClose() {
 			logger('Data channel closed');
 			dataChannel.onopen = null;

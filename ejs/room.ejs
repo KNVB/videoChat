@@ -38,7 +38,6 @@
 					$("html,body").height(window.innertHeight);
 				});
 				$(".fa-share-alt").click(()=>{
-
 					if (navigator.share) {
 						var shareData={"title": 'Video Chat Link',"text": 'This is the video Chat link'};
 						shareData["url"]=getShareLink();
@@ -47,7 +46,7 @@
 						copyLink();
 					}
 				});
-			
+				buildMemberList();
 				socket.emit("update_socket_id",{"user":<%-JSON.stringify(user)%>,"roomId":"<%=roomId%>"});
 				$("#videoSrc").val("<%=user.shareMedia.videoSrc%>");
 				$("#shareAudio").val("<%=user.shareMedia.shareAudio%>");
@@ -57,6 +56,36 @@
 <%} else {%>
 <%}%>				
 			});
+			function addMember(member,channelInfo){
+				var item ="<li class=\"media border border-secondary\" id=\""+member.email+"\">";
+				if (channelInfo.receiverIsHost)
+					item+="Hosts &nbsp;&nbsp;";
+				else
+					item+="<video style=\"widht:120px;height:60px\" controls></video>";
+				item+="<div class=\"media-body align-self-center\">";
+				item+=member.alias+"</div></li>";
+				$("#memberList").append(item);
+				if ("<%=user.email%>"!=member.email)
+					initMediaChannel(channelInfo);
+			}
+			function buildMemberList(){
+				var channelInfo,member;
+<%				Object.keys(room.getUserList()).forEach((key)=>{
+					member=room.getUserList()[key];%>
+					
+					member=<%- JSON.stringify(member)%>;
+					
+					channelInfo=new ChannelInfo();
+					channelInfo.roomId="<%=roomId%>";
+					channelInfo.receiverEmail=member.email;
+					channelInfo.receiverIsHost=<%=(room.isHost(member))%>;
+					channelInfo.senderEmail="<%=user.email%>";
+					channelInfo.senderIsHost="<%=isHost%>";
+					
+					addMember(member,channelInfo);
+					
+<%				})%>
+			}
 			function copyLink() {
 				const el = document.createElement('textarea');
 				el.value = getShareLink();
@@ -87,6 +116,7 @@
 				mediaChannel.setSocket(socket);
 				mediaChannelList[ci.receiverEmail]=mediaChannel;
 			}
+			
 			function setupVideo(stream){
 				selfView.srcObject=stream;
 				stream.getTracks().forEach((track)=> {
@@ -153,34 +183,27 @@
 				var memberCount=req.memberCount;
 				writeLog("User "+user.email+" leave the meeting room");
 				$("#memberCount").text("("+req.memberCount+")");
+				if (mediaChannelList[user.email])
+					delete mediaChannelList[user.email]
 				document.getElementById(user.email).remove();
 			});
 			socket.on("newMemberJoinTheMeeting",function(res){
-				var newMember=res.newMember;
-				var item ="<li class=\"media border border-secondary\" id=\""+newMember.email+"\">";
-				if ((<%=isHost%>) && ("<%=user.email%>"==newMember.email))
-					item+="Hosts &nbsp;&nbsp;";
-				else
-					item+="<video style=\"widht:120px;height:60px\" controls></video>";
-				item+="<div class=\"media-body align-self-center\">";
-				item+=newMember.alias+"</div></li>";
-				$("#memberCount").text("("+res.memberCount+")");
-				$("#memberList").append(item);
-				
 				var channelInfo=new ChannelInfo();
+				var newMember=res.newMember;
 				channelInfo.roomId="<%=roomId%>";
 				channelInfo.receiverEmail=newMember.email;
 				channelInfo.receiverIsHost=res.newUserIsHost;
 				channelInfo.senderEmail="<%=user.email%>";
 				channelInfo.senderIsHost="<%=isHost%>";
-				initMediaChannel(channelInfo);
+				addMember(res.newMember,channelInfo);
+				$("#memberCount").text("("+res.memberCount+")");
 				socket.emit("get_offer",channelInfo);
 			});
 			socket.on("receiveAnswer",async function(res){
 				var mediaChannel=mediaChannelList[res.channelInfo.senderEmail];
 				var channelInfo=mediaChannel.getChannelInfo();
 				try {
-					writeLog("An answer for "+channelInfo.receiverEmail+" is received.");
+					writeLog("An answer from "+channelInfo.receiverEmail+" is received.");
 					await mediaChannel.setRemoteDescription(res.answer);
 				} catch(error) {
 					writeLog("Failed to set setRemoteDescription for "+channelInfo.receiverEmail+":"+error);
@@ -302,25 +325,6 @@
 						</div>
 						<div class="p-1 tab-pane fade position-absolute h-100 w-100 overflow-auto" id="pills-member" role="tabpanel" aria-labelledby="pills-info-tab">
 							<ul id="memberList" class="list-unstyled">
-<%						Object.keys(room.getUserList()).forEach((key)=>{
-							var user=room.getUserList()[key];
-							if (room.isHost(user)){%>
-								<li class="media border border-secondary" id="<%=user.email%>">
-									Hosts &nbsp;&nbsp;
-									<div class="media-body">
-										<%=user.alias%>
-									</div>
-								</li>
-<%							
-							} else {%>								
-								<li class="media border border-secondary" id="<%=user.email%>">
-									<video style="widht:120px;height:60px" controls></video>
-									<div class="media-body align-self-center">
-										<%=user.alias%>
-									</div>	
-								</li>	
-<%							}
-						});%>								
 							</ul>
 						</div>
 						<div class="tab-pane fade position-absolute h-100 w-100 p-0" id="pills-message" role="tabpanel" aria-labelledby="pills-message-tab">
