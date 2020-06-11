@@ -5,6 +5,7 @@ class User
 		this.email;
 		this.shareMedia;
 		this.socketId;
+		this.isHost=false;
 	}
 }
 module.exports = User;

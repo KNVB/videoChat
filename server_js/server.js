@@ -111,11 +111,11 @@ app.post('/login', function(req, res) {
 			switch (action) {
 				case "createRoom":
 					req.session.roomId=uuidv4();
-					req.session.isHost=true;
+					req.session.user.isHost=true;
 					res.redirect('/room');
 					break;
 				case "joinRoom":
-					req.session.isHost=false;
+					req.session.user.isHost=false;
 					req.session.roomId=roomId
 					res.redirect('/room');
 					break;
