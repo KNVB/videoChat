@@ -3,7 +3,6 @@ var cookieParser = require('cookie-parser');
 var express = require('express');
 var session = require('express-session');
 var app = express();
-var roomList={};
 var userList={};
 
 const { v4: uuidv4 } = require('uuid');
@@ -45,7 +44,8 @@ app.set('view engine', 'ejs');
 app.use(express.static('public'));
 app.get('/',function (req,res) {
 	try{
-		res.locals.event=req.query.event;
+		res.locals.action="createRoom";
+		res.locals.event=req.session.event;
 		switch (res.locals.event) {
 			case "logoutSuccess":
 				res.locals.alias=req.session.user.alias;
@@ -61,14 +61,14 @@ app.get('/',function (req,res) {
 		res.render('index');
 	}
 });
-app.get("/joinRoom",function(req,res){
-	try{
-		//console.log("ho:"+req.query.roomId);
-		res.locals.roomId=req.query.roomId;
-		res.render('index');
-	} catch(error){
-		console.log(error);	
-	}
+app.get("/joinRoom/:roomId",(req,res)=>{
+	var roomId = req.params.roomId;
+	res.locals.action="joinRoom";
+	res.locals.roomId=roomId;
+	res.locals.event=req.session.event;
+	res.locals.user=req.session.user;
+	res.render('index');
+	req.session.destroy();
 });
 app.get('/room',function(req,res){
 	/*
@@ -79,34 +79,21 @@ app.get('/room',function(req,res){
 	res.locals.user=req.session.user;
 	res.locals.roomId=req.session.roomId;
 	res.locals.isHost=req.session.isHost;
-	res.locals.room=roomList[req.session.roomId];
+	
 	res.render('room');
 
 });
-app.post("/closeTheMeeting",function(req,res){
-	var roomId=req.body.roomId;
-	var room=roomList[roomId];
-	Object.keys(room.getUserList()).forEach((email)=>{
-		delete userList[email];
-	});
-	delete roomList[roomId];
-	room=null;
+//------------------------------------------------------------------------
+app.post("/leaveRoom/:roomId",(req,res)=>{ 
+	var roomId = req.params.roomId;
+	var userEmail=req.body.userEmail;
+	var user=userList[userEmail];
+	
+	
+	req.session.user = user;
+	req.session.event="logoutSuccess";
+	delete userList[userEmail];
 	res.redirect("/");
-});
-app.post('/leaveTheMeeting', function(req, res) {
-	try {
-		var email=req.body.userEmail;
-		var roomId=req.body.roomId;
-		var user = userList[email];
-		var room=roomList[roomId];
-		room.removeUser(user);
-		delete userList[email];
-		req.session.user=user;
-		res.redirect("/?event=logoutSuccess");
-		console.log("Server:"+user.email+" has left the room where room id:"+roomId);
-	} catch (error) {
-		res.send ("Something Wrong in /leaveTheMeeting:"+error);
-	}
 });
 app.post('/login', function(req, res) {
 	try {
@@ -117,70 +104,67 @@ app.post('/login', function(req, res) {
 		var user=new User();
 		user.alias=alias;
 		user.email=email;
-		user.shareMedia={"videoSrc":req.body.videoSrc,"shareAudio":req.body.shareAudio};
 		req.session.user = user;
-		//console.log(req.body);
+
 		if (userList[email]==null) {
-			userList[email]=user;
+			userList[user.email]=user;
 			switch (action) {
 				case "createRoom":
 					req.session.roomId=uuidv4();
 					req.session.isHost=true;
-					
-					roomList[req.session.roomId]=new ChatRoom(user);
-					roomList[req.session.roomId].ioObj(io);
 					res.redirect('/room');
 					break;
 				case "joinRoom":
-					var room=roomList[roomId];
-					//console.log(room);
-					room.addUser(user);
-					req.session.roomId=roomId;
 					req.session.isHost=false;
-					//console.log("user:"+user.alias+" has joined the room where room id:"+roomId);
-					res.redirect("/room");
+					req.session.roomId=roomId
+					res.redirect('/room');
 					break;
 			}
 		} else {
-			req.session.user=user;
-			res.redirect("/?event=duplicateEmail");
-		}
+			req.session.event="duplicateEmail";	
+			switch (action) {
+				case "createRoom":
+					res.redirect("/");
+					break;
+				case "joinRoom":
+					res.redirect("/joinRoom/"+roomId);
+					break	
+			}	
+			
+		}			
 	} catch (error) {
 		res.send ("Something Wrong in /login:"+error);
-	}
+	}		
 });
+//------------------------------------------------------------------------	
 io.on('connection', (socket) => {
+	socket.on("joinRoom",(req)=>{
+		var user=userList[req.userEmail];
+		var res={}
+		console.log(req.userEmail +" join room "+req.roomId);
+		
+		user.socketId=socket.id;
+		userList[req.userEmail]=user;
+		socket.join(req.roomId);
+		res["user"]=user;
+		res["userCount"]=io.sockets.adapter.rooms[req.roomId].length;
+		socket.in(req.roomId).emit("userJoin",res);
+	});
+	socket.on("sendMessage",(req)=>{
+		var res={};
+		res["alias"]=req.userAlias;
+		res["msg"]=req.msg;
+		socket.in(req.roomId).emit("receiveMsg",res);
+	});
+	socket.on("userLeave",(req)=>{
+		var user=userList[req.userEmail];
+		var res={}
+		socket.leave(req.roomId);			
+		res["user"]=user;
+		if (io.sockets.adapter.rooms[req.roomId]){
+			res["userCount"]=io.sockets.adapter.rooms[req.roomId].length;
+			socket.in(req.roomId).emit("userLeave",res);
+		}
+	});
 	
-	socket.on("get_offer",(channelInfo)=>{
-		var room=roomList[channelInfo.roomId];		
-		room.getOffer(channelInfo);
-		console.log("Server:"+channelInfo.senderEmail+" offer request is sent to "+ channelInfo.receiverEmail+".");
-	});
-	socket.on("send_answer",(req)=>{
-		var channelInfo=req.channelInfo;
-		var room=roomList[channelInfo.roomId];
-		
-		room.sendAnswer(req);
-		console.log("Server:"+channelInfo.senderEmail+" sent answer to "+ channelInfo.receiverEmail+".");
-	});
-	socket.on('send_ice_candidate',(req)=>{
-		var channelInfo=req.channelInfo;
-		var room=roomList[channelInfo.roomId];
-		
-		room.sendICECandidate(req);
-		console.log("Server:"+channelInfo.senderEmail+" sent an ICE Candidate to "+ channelInfo.receiverEmail+".");
-	});	
-	socket.on('send_offer',(req)=>{
-		var channelInfo=req.channelInfo;
-		var room=roomList[channelInfo.roomId];
-		
-		room.sendOffer(req);
-		console.log("Server:"+channelInfo.senderEmail+" sent an offer to "+ channelInfo.receiverEmail+".");
-	});
-	socket.on("update_socket_id",(req)=>{
-		//console.log(data);
-		var room=roomList[req.roomId];
-		req.user.socketId=socket.id;
-		room.updateSocketId(req.user,socket.id);
-	});	
 });

@@ -7,7 +7,6 @@ class ChatRoom
 		var userList={};
 		
 		host=hostUser;
-		addUser(host);
 		this.ioObj=((io)=>{
 			ioObj=io;
 		});

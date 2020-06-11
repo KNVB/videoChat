@@ -11,331 +11,71 @@
 		<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
 		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
-		<script src="https://kit.fontawesome.com/145b006857.js" crossorigin="anonymous"></script>
 		<script src="/socket.io/socket.io.js"></script>
-		<script src="js/ChannelInfo.js"></script>
-		<script src="js/LocalMedia.js"></script>
-		<script src="js/MediaChannel.js"></script>
 		<script>
-			var localMedia=new LocalMedia();
-			var mediaChannelList={};
+			var messageBox;
 			var socket = io.connect();
-
+			
 			$( document ).ready(function(){
-				$("#audioSrcLabel").click(function (){
-					if ($(this).hasClass("active")) {
-						$(this).removeClass("btn-success").addClass("btn-danger");
-						$(this).children(".badge").removeClass("badge-success").addClass("badge-danger");
-						$(this).children(".badge").text("Off");
-					} else {
-						$(this).removeClass("btn-danger").addClass("btn-success");
-						$(this).children(".badge").removeClass("badge-danger").addClass("badge-success");
-						$(this).children(".badge").text("On");
-					}
-				});
-				$(window).resize(()=>{
-					$("html,body").height(window.innertHeight);
-				});
-				$(".fa-share-alt").click(()=>{
-					if (navigator.share) {
-						var shareData={"title": 'Video Chat Link',"text": 'This is the video Chat link'};
-						shareData["url"]=getShareLink();
-						navigator.share(shareData);
-					} else {
-						copyLink();
-					}
-				});
-				buildMemberList();
-				socket.emit("update_socket_id",{"user":<%-JSON.stringify(user)%>,"roomId":"<%=roomId%>"});
-				$("#videoSrc").val("<%=user.shareMedia.videoSrc%>");
-				$("#shareAudio").val("<%=user.shareMedia.shareAudio%>");
-
-<%if (isHost) {%>
-				updateSrc();
-<%} else {%>
-<%}%>				
+				socket.emit("joinRoom",{roomId:"<%=roomId%>",userEmail:"<%=user.email%>"});
+				document.getElementById("link").textContent=getShareLink();
+				messageBox=document.getElementById("messageHistory");
 			});
-			function addMember(member,channelInfo){
-				var item ="<li class=\"media border border-secondary\" id=\""+member.email+"\">";
-				if (channelInfo.receiverIsHost)
-					item+="Hosts &nbsp;&nbsp;";
-				else
-					item+="<video style=\"widht:120px;height:60px\" controls></video>";
-				item+="<div class=\"media-body align-self-center\">";
-				item+=member.alias+"</div></li>";
-				$("#memberList").append(item);
-				if ("<%=user.email%>"!=member.email)
-					initMediaChannel(channelInfo);
-			}
-			function buildMemberList(){
-				var channelInfo,member;
-<%				Object.keys(room.getUserList()).forEach((key)=>{
-					member=room.getUserList()[key];%>
-					
-					member=<%- JSON.stringify(member)%>;
-					
-					channelInfo=new ChannelInfo();
-					channelInfo.roomId="<%=roomId%>";
-					channelInfo.receiverEmail=member.email;
-					channelInfo.receiverIsHost=<%=(room.isHost(member))%>;
-					channelInfo.senderEmail="<%=user.email%>";
-					channelInfo.senderIsHost="<%=isHost%>";
-					
-					addMember(member,channelInfo);
-					
-<%				})%>
-			}
-			function copyLink() {
-				const el = document.createElement('textarea');
-				el.value = getShareLink();
-				document.body.appendChild(el);
-				el.select();
-				document.execCommand('copy');
-				document.body.removeChild(el);
-				alert("The link for this room is copied to clipboard");
-			}
-			function clearVideo(){
-				if (selfView.srcObject!=null) {
-					selfView.srcObject.getTracks().forEach((track)=>{
-						track.stop();
-					});
-					selfView.srcObject=null;
-				}
-			}
 			function getShareLink(){
 				var url = window.location.href;
 				var arr = url.split("/");
-				var result = arr[0] + "//" + arr[2]+"/joinRoom?roomId=<%=roomId%>";
+				var result = arr[0] + "//" + arr[2]+"/joinRoom/<%=roomId%>";
 				return result;
 			}
-			function initMediaChannel(ci) {
-				var mediaChannel=new MediaChannel(ci);
-				mediaChannel.createConnection();
-				mediaChannel.setLogger(writeLog);
-				mediaChannel.setSocket(socket);
-				mediaChannelList[ci.receiverEmail]=mediaChannel;
+			function leaveTheRoom(v){
+				var req={roomId:"<%=roomId%>","userEmail":"<%=user.email%>"};
+				socket.emit("userLeave",req);
 			}
-			
-			function setupVideo(stream){
-				selfView.srcObject=stream;
-				stream.getTracks().forEach((track)=> {
-					track.onended=(()=>{
-						track.stop();
-						if (selfView.srcObject!=null)
-							selfView.srcObject=null;
-					});
-				});
+			function sendMessage(){
+				var html="<div class=\"alert alert-success\" role=\"alert\">";
+				html+="<%=user.alias%>";
+				html+="<div class=\"d-flex justify-content-center\">"+document.getElementById("message").value+"</div>";
+				html+="</div>";
+				$(messageBox).append(html);
+				var req={"roomId":"<%=roomId%>"};
+				req["msg"]=document.getElementById("message").value;
+				req["userAlias"]="<%=user.alias%>";
+				socket.emit("sendMessage",req);
+				document.getElementById("message").value="";
 			}
-			async function updateSrc(){
-				var shareAudio=document.getElementById("shareAudio");
-				var videoSrc=document.getElementById("videoSrc");
-				
-				clearVideo();
-				if (($(videoSrc).val()!="no") || ($(shareAudio).val()=="yes")) {
-					try{
-						var stream=await localMedia.getStream($(videoSrc).val(),$(shareAudio).val());
-						if (stream!=null){
-							setupVideo(stream);
-						}
-					}catch (error) {
-						alert("Fail to get Media Stream:"+error);
-					}					
-				}
-			}
-			function writeLog(message){
-				console.log(message);
-			}
-//------------------------------------------------------------------------------------------------						
-<%if (isHost) {%>
-			function closeTheMeeting(){
-				clearVideo();
-				document.getElementById("closeMeetingForm").submit();
-			}			
-<%} else {%>
-			function leaveTheMeeting(){
-				clearVideo();
-				document.getElementById("leaveMeetingForm").submit();
-			}
-<%}%>								
-//------------------------------------------------------------------------------------------------
-			socket.on("getOffer",async function (req){
-				var channelInfo=new ChannelInfo();
-				channelInfo.roomId="<%=roomId%>";
-				channelInfo.receiverEmail=req.senderEmail;
-				channelInfo.receiverIsHost=req.senderIsHost;
-				channelInfo.senderEmail="<%=user.email%>";
-				channelInfo.senderIsHost="<%=isHost%>";
-				initMediaChannel(channelInfo);
-				try{
-					var mediaChannel=mediaChannelList[channelInfo.receiverEmail];
-					var res={};
-					res["channelInfo"]=channelInfo;
-					res["offer"]=await mediaChannel.createOffer();
-					socket.emit('send_offer',res);
-					writeLog("An offer sent to "+channelInfo.receiverEmail+" via server");
-				}catch (error) {
-					writeLog("Failed to get MediaOffer for "+channelInfo.receiverEmail+":"+error);
-				}	
+			socket.on("receiveMsg",(res)=>{
+				var html="<div class=\"alert alert-success\" role=\"alert\">";
+				html+=res.alias;
+				html+="<div class=\"d-flex justify-content-center\">"+res.msg+"</div>";
+				html+="</div>";
+				$(messageBox).append(html);
 			});
-			socket.on("memberLeaveTheMeeting",function(req){
-				var user=req.member;
-				var memberCount=req.memberCount;
-				writeLog("User "+user.email+" leave the meeting room");
-				$("#memberCount").text("("+req.memberCount+")");
-				if (mediaChannelList[user.email])
-					delete mediaChannelList[user.email]
-				document.getElementById(user.email).remove();
+			socket.on("userJoin",(res)=>{
+				var html="<div class=\"alert alert-success\" role=\"alert\">";
+					html+="User "+res.user.alias+" has joined the meeting";
+					html+="</div>";
+				$(messageBox).append(html);
+				console.log("user count="+res.userCount);
 			});
-			socket.on("newMemberJoinTheMeeting",function(res){
-				var channelInfo=new ChannelInfo();
-				var newMember=res.newMember;
-				channelInfo.roomId="<%=roomId%>";
-				channelInfo.receiverEmail=newMember.email;
-				channelInfo.receiverIsHost=res.newUserIsHost;
-				channelInfo.senderEmail="<%=user.email%>";
-				channelInfo.senderIsHost="<%=isHost%>";
-				addMember(res.newMember,channelInfo);
-				$("#memberCount").text("("+res.memberCount+")");
-				socket.emit("get_offer",channelInfo);
-			});
-			socket.on("receiveAnswer",async function(res){
-				var mediaChannel=mediaChannelList[res.channelInfo.senderEmail];
-				var channelInfo=mediaChannel.getChannelInfo();
-				try {
-					writeLog("An answer from "+channelInfo.receiverEmail+" is received.");
-					await mediaChannel.setRemoteDescription(res.answer);
-				} catch(error) {
-					writeLog("Failed to set setRemoteDescription for "+channelInfo.receiverEmail+":"+error);
-				}
-			});
-			socket.on("receiveICECandidate",async function(res){
-				var mediaChannel=mediaChannelList[res.channelInfo.senderEmail];
-				var channelInfo=mediaChannel.getChannelInfo();
-				try{
-					await mediaChannel.addICECandidate(res.iceCandidate);
-					writeLog("An ICE candidate for "+channelInfo.receiverEmail+" is added successfully.");
-				} catch (error) {
-					writeLog("Failed to add ICE candidate for "+channelInfo.receiverEmail+":"+error);
-				}			
-			});
-			socket.on("receiveOffer",async function(res){
-				try{
-					var mediaChannel=mediaChannelList[res.channelInfo.senderEmail];
-					var answer=await mediaChannel.createAnswer(res.offer);
-					var channelInfo=mediaChannel.getChannelInfo();
-					var req={};
-					writeLog("An offer from "+channelInfo.receiverEmail+" received.");
-					req["answer"]=answer;
-					req["channelInfo"]=mediaChannel.getChannelInfo();
-					socket.emit('send_answer',req);
-					writeLog("An answer for "+channelInfo.receiverEmail+" is sent.");
-				}catch(error) {
-					writeLog("Failed to create answer for "+channelInfo.receiverEmail+":"+error);
-				}
-			});			
+			socket.on("userLeave",(res)=>{
+				var html="<div class=\"alert alert-danger\" role=\"alert\">";
+					html+="User "+res.user.alias+" has left the meeting";
+					html+="</div>";
+				$(messageBox).append(html);
+				console.log("user count="+res.userCount);
+			});		
 		</script>
-		<style>
-			video{
-				object-fit:cover;
-			}
-		</style>	
 	</head>
-	<body class="p-1">
-		<div class="p-0 container-fluid d-flex h-100 flex-column border border-danger">
-			<div class="p-0 row h-50 no-gutters">
-				<div class="p-0 col-12 col-sm-12 col-lg-12 col-xl-12 position-relative">
-					<video id="selfView" class="h-100 w-100 position-absolute" autoplay controls muted>
-					</video>
-				</div>
-			</div>
-			<div class="p-0 row h-50 border border-secondary no-gutters">
-				<div class="col p-1 d-flex flex-column">
-					<div class="d-flex flex-row align-items-center justify-content-center">
-						<div class="btn-group-toggle p-1">
-							<label class="btn-sm btn btn-lg btn-success">			
-								Alias:<%=user.alias%>
-							</label>
-						</div>	
-						<div class="btn-group-toggle p-1">
-							<label class="btn-sm btn btn-lg btn-success">
-								Share 
-								<select name="videoSrc" id="videoSrc" class="bg-success text-white" onchange="updateSrc()">
-									<option value="no" >No</option>
-									<option value="webCam">Web Cam</option>
-									<option value="screen">Screen</option>
-								</select>
-								Video
-							</label>
-						</div>
-						<div class="btn-group-toggle p-1">
-							<label class="btn-sm btn btn-lg btn-success">
-								Share Audio
-								<select name="shareAudio" id="shareAudio" class="bg-success text-white" onchange="updateSrc()">
-									<option value="yes">Yes</option>
-									<option value="no" >No</option>
-								</select>
-							</label>
-						</div>
-<%if (isHost) {%>						
-						<div class="btn-group-toggle d-flex justify-content-center p-1">
-							<button class="btn-sm btn btn-lg btn-success" onclick="closeTheMeeting()">Close the meeting</button>
-						</div>
-						<form id="closeMeetingForm" method="post" action="/closeTheMeeting">
-							<input type=hidden name="roomId" value="<%=roomId%>">
-						</form>
-
-<%} else {%>
-						<div class="btn-group-toggle d-flex justify-content-center p-1">
-							<button class="btn-sm btn btn-lg btn-success" onclick="leaveTheMeeting()">Leave the meeting</button>
-						</div>
-						<form id="leaveMeetingForm" method="post" action="/leaveTheMeeting">
-							<input type=hidden name="userEmail" value="<%=user.email%>">
-							<input type=hidden name="roomId" value="<%=roomId%>">
-						</form>
-<%}%>					
-					</div>	
-					
-					<ul class="nav nav-pills p-1 justify-content-around" id="pills-tab" role="tablist">
-					  <li class="nav-item">
-						<a class="nav-link active" 
-							id="pills-info-tab" data-toggle="pill" 
-							href="#pills-info" role="tab" aria-controls="pills-info" aria-selected="true">
-							<i class="fas fa-2x fa-info-circle"></i>
-						</a>
-					  </li>
-					  <li class="nav-item">
-						<a class="nav-link" 
-							id="pills-member-tab" data-toggle="pill" 
-							href="#pills-member" role="tab" aria-controls="pills-member" aria-selected="false">
-							<i class="fas fa-2x fa-user-friends"></i><span id="memberCount">(<%=room.getUserCount()%>)</span>
-						</a>
-					  </li>
-					  <li class="nav-item">
-						<a class="nav-link" 
-							id="pills-message-tab" data-toggle="pill" 
-							href="#pills-message" role="tab" aria-controls="pills-message" aria-selected="false">
-							<i class="far fa-2x fa-comment"></i><div id="unreadMessageCount"></div>
-						</a>
-					  </li>
-					</ul>
-					<div class="tab-content flex-grow-1 position-relative border border-warning p-0" id="pills-tabContent">
-						<div class="p-1 tab-pane fade show active" id="pills-info" role="tabpanel" aria-labelledby="pills-info-tab">
-							<i class="fas fa-2x fa-share-alt" style="cursor:pointer"></i><br>
-						</div>
-						<div class="p-1 tab-pane fade position-absolute h-100 w-100 overflow-auto" id="pills-member" role="tabpanel" aria-labelledby="pills-info-tab">
-							<ul id="memberList" class="list-unstyled">
-							</ul>
-						</div>
-						<div class="tab-pane fade position-absolute h-100 w-100 p-0" id="pills-message" role="tabpanel" aria-labelledby="pills-message-tab">
-							<div class="d-flex flex-column position-relative p-0 h-100 w-100">
-								<div id="chatMessageHistory" class="p-1 w-100 flex-grow-1 overflow-auto">
-								</div>
-								<input type="text" id="messageText" placeholder="Send message to all member">
-							</div>
-						</div>
-					</div>
-				</div>		
-			</div>
+	<body>
+		
+		<div id="messageHistory" class="h-25 w-100 border border-primar overflow-auto">
+		</div>
+		<input type="text" id=message> <button onclick="sendMessage()">Send message</button>
+		<form action="/leaveRoom/<%=roomId%>" method="post" onsubmit="leaveTheRoom(this)">
+			<input type=hidden name=userEmail value="<%=user.email%>">
+			<button>Leave the Room</button>
+		</form>
+		<div id="link">
 		</div>
 	</body>
-</html>
+</html>	
