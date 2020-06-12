@@ -10,14 +10,12 @@ class MediaChannel{
 			offerToReceiveVideo: true,
 			iceRestart: true
 		};
-		var dataChannel,logger,pc,socket;
-		var channelInfo=ci;
-		
-		this.addICECandidate=((iceCandidate)=>{
-			pc.addIceCandidate(iceCandidate)
+		var channelInfo=ci,dataChannel,logger,pc,self=this,socket;
+		this.addICECandidate=(async (iceCandidate)=>{
+			await pc.addIceCandidate(iceCandidate)
 		});
 		this.createAnswer=(async (offer)=>{
-			await pc.setRemoteDescription(offer);
+			await self.setRemoteDescription(offer);
 			var answer=await pc.createAnswer();
 			await pc.setLocalDescription(answer);
 			return answer;
@@ -114,11 +112,11 @@ class MediaChannel{
 			if (event.candidate==null){
 				logger("All ICE Candidates are sent");
 			} else {
-				logger("Send ICE Candidate");
+				logger(channelInfo.sender.email + " send ICE Candidate to "+channelInfo.receiver.email);
 				var req={};
-				req["channelInfo"]=JSON.parse(JSON.stringify(channelInfo));
+				req["channelInfo"]=channelInfo;
 				req["iceCandidate"]=event.candidate;
-				socket.emit('send_ice_candidate',req);
+				socket.emit('sendICECandidate',req);
 			}
 		}
 		function handleICEConnectionStateChange(event) {

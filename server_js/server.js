@@ -3,6 +3,8 @@ var cookieParser = require('cookie-parser');
 var express = require('express');
 var session = require('express-session');
 var app = express();
+
+var roomList={};
 var userList={};
 
 const { v4: uuidv4 } = require('uuid');
@@ -78,7 +80,6 @@ app.get('/room',function(req,res){
 	*/
 	res.locals.user=req.session.user;
 	res.locals.roomId=req.session.roomId;
-	res.locals.isHost=req.session.isHost;
 	
 	res.render('room');
 
@@ -88,7 +89,6 @@ app.post("/leaveRoom/:roomId",(req,res)=>{
 	var roomId = req.params.roomId;
 	var userEmail=req.body.userEmail;
 	var user=userList[userEmail];
-	
 	
 	req.session.user = user;
 	req.session.event="logoutSuccess";
@@ -110,8 +110,10 @@ app.post('/login', function(req, res) {
 			userList[user.email]=user;
 			switch (action) {
 				case "createRoom":
-					req.session.roomId=uuidv4();
+					roomId=uuidv4();
+					req.session.roomId=roomId;
 					req.session.user.isHost=true;
+					roomList[req.session.roomId]=new ChatRoom(user,roomId);
 					res.redirect('/room');
 					break;
 				case "joinRoom":
@@ -139,32 +141,44 @@ app.post('/login', function(req, res) {
 //------------------------------------------------------------------------	
 io.on('connection', (socket) => {
 	socket.on("joinRoom",(req)=>{
+		var room=roomList[req.roomId];
 		var user=userList[req.userEmail];
-		var res={}
-		console.log(req.userEmail +" join room "+req.roomId);
 		
 		user.socketId=socket.id;
 		userList[req.userEmail]=user;
-		socket.join(req.roomId);
-		res["user"]=user;
-		res["userCount"]=io.sockets.adapter.rooms[req.roomId].length;
-		socket.in(req.roomId).emit("userJoin",res);
+		room.join(socket,user);
 	});
-	socket.on("sendMessage",(req)=>{
-		var res={};
-		res["alias"]=req.userAlias;
-		res["msg"]=req.msg;
-		socket.in(req.roomId).emit("receiveMsg",res);
+	socket.on("broadcastMessage",(req)=>{
+		var room=roomList[req.roomId];
+		room.broadcastMsg(socket,req);
 	});
-	socket.on("userLeave",(req)=>{
+	socket.on("leaveRoom",(req)=>{
+		var room=roomList[req.roomId];
 		var user=userList[req.userEmail];
-		var res={}
-		socket.leave(req.roomId);			
-		res["user"]=user;
-		if (io.sockets.adapter.rooms[req.roomId]){
-			res["userCount"]=io.sockets.adapter.rooms[req.roomId].length;
-			socket.in(req.roomId).emit("userLeave",res);
+		
+		room.leave(socket,user);
+		
+		if (room.getUserCount()==0) {
+			delete roomList[req.roomId];
+			console.log("ChatRoom:"+req.roomId+" has been closed.");
 		}
 	});
-	
+	socket.on("requestMediaOffer",(req)=>{
+		
+		var room=roomList[req.roomId];
+		room.requestMediaOffer(io,req);
+	});
+	socket.on('sendICECandidate',(req)=>{
+		var room=roomList[req.channelInfo.roomId];
+		room.sendICECandidate(io,req);
+	});
+	socket.on("sendMediaAnswer",(req)=>{
+		var room=roomList[req.channelInfo.roomId];
+		room.sendAnswer(io,req);
+	});
+	socket.on("sendMediaOffer",(req)=>{
+		
+		var room=roomList[req.channelInfo.roomId];
+		room.sendMediaOffer(io,req);
+	});
 });

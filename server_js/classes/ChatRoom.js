@@ -1,93 +1,62 @@
 const User=require("./User");
-class ChatRoom
-{
-	constructor(hostUser) {
-		var host;
-		var ioObj;
+class ChatRoom {
+	constructor(hostUser,rmId) {
+		var host=hostUser;
 		var userList={};
-		
-		host=hostUser;
-		this.ioObj=((io)=>{
-			ioObj=io;
-		});
-		this.addUser=((user)=>{
-			addUser(user);
-		});
-		
-		this.getHost=(()=>{
-			return host;
-		});
-		this.getOffer=((req)=>{
-			//req={"isHost":<%=isHost%>,"roomId":"<%=roomId%>","senderEmail":"<%=user.email%>","receiverEmail":newMember.email};
-			var targetMember=userList[req.receiverEmail];
-			ioObj.to(targetMember.socketId).emit("getOffer",req);
+		var roomId=rmId;
+		console.log("ChatRoom:"+rmId+" has been created");
+		this.broadcastMsg=((socket,req)=>{
+			broadcast(socket,"broadcastMessage",req);
 		});
 		this.getUserCount=(()=>{
 			return Object.keys(userList).length;
 		});
-		this.getUserList=(()=>{
-			return userList;
-		});
-		this.isHost=((user)=> {
-			if (host.email==user.email) {
-				return true;
-			} else {
-				return false;
-			}				
-		});
-		this.removeUser=((user)=>{
-			delete userList[user.email];
-			var data={"memberCount":this.getUserCount(),"member":user}; 
-			broadCastToAllAnotherMember("memberLeaveTheMeeting",user,data);
-		});
-		this.sendAnswer=((req)=>{
-			var channelInfo=req.channelInfo;
-			var targetMember=userList[channelInfo.receiverEmail];
-			var res={};
-
-			res["answer"]=req.answer;
-			res["channelInfo"]=channelInfo;
-			ioObj.to(targetMember.socketId).emit("receiveAnswer",res);
-			console.log("ChatRoom:"+channelInfo.senderEmail+" sent answer to "+ channelInfo.receiverEmail);
-		});	
-		this.sendICECandidate=((req)=>{
-			var channelInfo=req.channelInfo;
-			var targetMember=userList[channelInfo.receiverEmail];
-			var res={};
-			res["iceCandidate"]=req.iceCandidate;
-			res["channelInfo"]=channelInfo;
-			ioObj.to(targetMember.socketId).emit("receiveICECandidate",res);
-			console.log("ChatRoom:"+channelInfo.senderEmail+" sent ICE Candidate to "+ channelInfo.receiverEmail);
-		});
-		this.sendOffer=((req)=>{
+		this.join=((socket,user)=>{
+			var res={}
+			res["newUser"]=user;
 			
-			var channelInfo=req.channelInfo;
-			var targetMember=userList[channelInfo.receiverEmail];
-			var res={};
-			
-			res["offer"]=req.offer;
-			res["channelInfo"]=channelInfo;
-			ioObj.to(targetMember.socketId).emit("receiveOffer",res);
-			console.log("ChatRoom:"+channelInfo.senderEmail+" sent offer to "+ channelInfo.receiverEmail);
-		});
-		this.updateSocketId=((user,socketId)=>{
-			user.socketId=socketId;
 			userList[user.email]=user;
-			var data={"memberCount":this.getUserCount(),"newMember":user}; 
-			data["newUserIsHost"]=this.isHost(user); 
-			broadCastToAllAnotherMember("newMemberJoinTheMeeting",user,data);
+			res["userCount"]=Object.keys(userList).length;
+			socket.join(roomId);
+			console.log(user.email +" has joined the room "+roomId);
+			broadcast(socket,"userJoin",res);
+			
+		});		
+		this.leave=((socket,user)=>{
+			delete userList[user.email];
+			var data={"userCount":this.getUserCount(),"user":user}; 
+			broadcast(socket,"userLeave",data);
+			console.log(user.email +" has left the room "+roomId);
 		});
-		function broadCastToAllAnotherMember(eventName,user,data) {
-			Object.keys(userList).forEach((email)=>{
-				if (email!=user.email){
-					var existingUser=userList[email];
-					ioObj.to(existingUser.socketId).emit(eventName,data);
-				}
-			});		
+		this.requestMediaOffer=((io,req)=>{
+			var receiver=userList[req.receiver.email];
+			var sender=userList[req.sender.email];
+			console.log(sender.email+" request an media offer from "+receiver.email);
+			io.to(receiver.socketId).emit('requestMediaOffer', req);
+		});
+		this.sendAnswer=((io,req)=>{
+			var receiver=userList[req.channelInfo.receiver.email];
+			var sender=userList[req.channelInfo.sender.email];
+			console.log(sender.email+" send an media answer to "+receiver.email);
+			io.to(receiver.socketId).emit('receiveMediaAnswer', req);
+		});
+		this.sendICECandidate=((io,req)=>{
+			var receiver=userList[req.channelInfo.receiver.email];
+			var sender=userList[req.channelInfo.sender.email];
+			console.log(sender.email+" send an ICE Candidate to "+receiver.email);
+			io.to(receiver.socketId).emit("receiveICECandidate", req);
+		});
+		this.sendMediaOffer=((io,req)=>{
+			var receiver=userList[req.channelInfo.receiver.email];
+			var sender=userList[req.channelInfo.sender.email];
+			console.log(sender.email+" send an media offer to "+receiver.email);
+			io.to(receiver.socketId).emit('receiveMediaOffer', req);
+		});
+//----------------------------------------------		
+		function broadcast(socket,event,data){
+			socket.broadcast.emit(event,data);
 		}
-		function addUser(user){
-			userList[user.email]=user;	
-		}
-	}
+		
+	}	
 }
 module.exports = ChatRoom;

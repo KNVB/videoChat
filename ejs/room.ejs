@@ -12,7 +12,11 @@
 		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 		<script src="/socket.io/socket.io.js"></script>
+		<script src="js/ChannelInfo.js"></script>
+		<script src="js/LocalMedia.js"></script>
+		<script src="js/MediaChannel.js"></script>
 		<script>
+			var channelList={};
 			var messageBox;
 			var socket = io.connect();
 			
@@ -27,9 +31,16 @@
 				var result = arr[0] + "//" + arr[2]+"/joinRoom/<%=roomId%>";
 				return result;
 			}
+			function initMediaChannel(ci) {
+				var mediaChannel=new MediaChannel(ci);
+				mediaChannel.createConnection();
+				mediaChannel.setLogger(writeLog);
+				mediaChannel.setSocket(socket);
+				return mediaChannel;
+			}
 			function leaveTheRoom(v){
 				var req={roomId:"<%=roomId%>","userEmail":"<%=user.email%>"};
-				socket.emit("userLeave",req);
+				socket.emit("leaveRoom",req);
 			}
 			function sendMessage(){
 				var html="<div class=\"alert alert-success\" role=\"alert\">";
@@ -40,22 +51,71 @@
 				var req={"roomId":"<%=roomId%>"};
 				req["msg"]=document.getElementById("message").value;
 				req["userAlias"]="<%=user.alias%>";
-				socket.emit("sendMessage",req);
+				socket.emit("broadcastMessage",req);
 				document.getElementById("message").value="";
 			}
-			socket.on("receiveMsg",(res)=>{
+			function writeLog(message){
+				console.log(message);
+			}
+//-------------------------------------------------------------------------------------------------------			
+			socket.on("broadcastMessage",(res)=>{
 				var html="<div class=\"alert alert-success\" role=\"alert\">";
-				html+=res.alias;
+				html+=res.userAlias;
 				html+="<div class=\"d-flex justify-content-center\">"+res.msg+"</div>";
 				html+="</div>";
 				$(messageBox).append(html);
 			});
+			socket.on("receiveICECandidate",async(req)=>{
+				var ci=req.channelInfo;
+				var mc=channelList[ci.sender.email];
+				mc.addICECandidate(req["iceCandidate"]);
+			});
+			socket.on('requestMediaOffer',async (req)=>{
+				var ci=new ChannelInfo();
+				var mediaChannel,offer;
+				var res={};
+				ci.roomId="<%=roomId%>";
+				ci.receiver=req.sender;
+				ci.sender=req.receiver;
+				mediaChannel=initMediaChannel(ci);
+				offer=await mediaChannel.createOffer();
+				channelList[req.sender.email]=mediaChannel;
+				res["channelInfo"]=ci;
+				res["offer"]=offer;
+				
+				socket.emit("sendMediaOffer",res);
+			});
+			socket.on('receiveMediaAnswer',async (req)=>{
+				var ci=req.channelInfo;
+				var mc=channelList[ci.sender.email];
+				await mc.setRemoteDescription(req.answer);
+			});
+			socket.on("receiveMediaOffer",async(req)=>{
+				var ci=req.channelInfo;
+				var answer=await channelList[ci.sender.email].createAnswer(req.offer);
+				var res={};
+				
+				res["answer"]=answer;
+				res["channelInfo"]=channelList[ci.sender.email].getChannelInfo();
+				socket.emit("sendMediaAnswer",res);
+			});
 			socket.on("userJoin",(res)=>{
+				var ci, mediaChannel;
 				var html="<div class=\"alert alert-success\" role=\"alert\">";
-					html+="User "+res.user.alias+" has joined the meeting";
+					html+="User "+res.newUser.alias+" has joined the meeting";
 					html+="</div>";
+				
+				var req={};
 				$(messageBox).append(html);
+				ci=new ChannelInfo()
+				ci.roomId="<%=roomId%>";
+				ci.receiver=res.newUser;
+				ci.sender=<%- JSON.stringify(user)%>;
+				mediaChannel=initMediaChannel(ci);
+				channelList[res.newUser.email]=mediaChannel;
 				console.log("user count="+res.userCount);
+				socket.emit("requestMediaOffer",ci);
+				
 			});
 			socket.on("userLeave",(res)=>{
 				var html="<div class=\"alert alert-danger\" role=\"alert\">";
