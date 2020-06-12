@@ -25,6 +25,35 @@
 				document.getElementById("link").textContent=getShareLink();
 				messageBox=document.getElementById("messageHistory");
 			});
+			async function add(){
+				var selfView=document.getElementById("selfView");
+				if (selfView.srcObject!=null) {
+					selfView.srcObject.getTracks().forEach((track)=>{
+						track.stop();
+					});
+					selfView.srcObject=null;
+				}
+				var localMedia=new LocalMedia();
+				
+				
+				var stream=await localMedia.getStream("screen","no");
+				Object.keys(channelList).forEach((key)=>{
+					var mc=channelList[key];
+					mc.removeAllMediaTrack();
+					stream.getTracks().forEach((track)=>{
+						mc.addTrack(track,stream);
+					});
+				});
+			}
+			function clearVideo(){
+				
+				if (selfView.srcObject!=null) {
+					selfView.srcObject.getTracks().forEach((track)=>{
+						track.stop();
+					});
+					selfView.srcObject=null;
+				}
+			}
 			function getShareLink(){
 				var url = window.location.href;
 				var arr = url.split("/");
@@ -33,14 +62,27 @@
 			}
 			function initMediaChannel(ci) {
 				var mediaChannel=new MediaChannel(ci);
-				mediaChannel.createConnection();
 				mediaChannel.setLogger(writeLog);
 				mediaChannel.setSocket(socket);
+				mediaChannel.setOnMessageEventHandler(onMessageEventHandler);
+				mediaChannel.setOnTrackEventHandler(ontrackEventHandler);
+				mediaChannel.createConnection();
 				return mediaChannel;
 			}
-			function leaveTheRoom(v){
+			function leaveTheRoom(){
 				var req={roomId:"<%=roomId%>","userEmail":"<%=user.email%>"};
+				Object.keys(channelList).forEach((key)=>{
+					var mc=channelList[key];
+					mc.hangUp();
+				});
 				socket.emit("leaveRoom",req);
+			}
+			function onMessageEventHandler(messageObj,channelInfo){
+				writeLog("An on message event occur in "+channelInfo.receiver.email+" channel");
+				writeLog(messageObj);
+			}
+			function ontrackEventHandler(track,channelInfo){
+				writeLog("An ontrack event occur in "+channelInfo.receiver.email+" channel");
 			}
 			function sendMessage(){
 				var html="<div class=\"alert alert-success\" role=\"alert\">";
@@ -52,8 +94,15 @@
 				req["msg"]=document.getElementById("message").value;
 				req["userAlias"]="<%=user.alias%>";
 				socket.emit("broadcastMessage",req);
+				/*
+				Object.keys(channelList).forEach((key)=>{
+					var mc=channelList[key];
+					mc.sendMsg(document.getElementById("message").value);
+				});		
+				*/
 				document.getElementById("message").value="";
 			}
+			
 			function writeLog(message){
 				console.log(message);
 			}
@@ -68,6 +117,7 @@
 			socket.on("receiveICECandidate",async(req)=>{
 				var ci=req.channelInfo;
 				var mc=channelList[ci.sender.email];
+				console.log("Receive an ICE Candidat from:"+ci.sender.email);
 				mc.addICECandidate(req["iceCandidate"]);
 			});
 			socket.on('requestMediaOffer',async (req)=>{
@@ -130,12 +180,14 @@
 		
 		<div id="messageHistory" class="h-25 w-100 border border-primar overflow-auto">
 		</div>
-		<input type="text" id=message> <button onclick="sendMessage()">Send message</button>
-		<form action="/leaveRoom/<%=roomId%>" method="post" onsubmit="leaveTheRoom(this)">
+		<input type="text" id=message> <button onclick="sendMessage()">Send message</button><br>
+		<button onclick="add()">Add</button>
+		<form action="/leaveRoom/<%=roomId%>" method="post" onsubmit="leaveTheRoom()">
 			<input type=hidden name=userEmail value="<%=user.email%>">
 			<button>Leave the Room</button>
 		</form>
 		<div id="link">
 		</div>
+		<video id="selfView"></video><video id="remoteView"></video>
 	</body>
 </html>	

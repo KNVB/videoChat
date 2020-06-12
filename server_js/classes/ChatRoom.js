@@ -18,38 +18,39 @@ class ChatRoom {
 			userList[user.email]=user;
 			res["userCount"]=Object.keys(userList).length;
 			socket.join(roomId);
-			console.log(user.email +" has joined the room "+roomId);
+			console.log("ChatRoom("+rmId+"):"+user.email +" has joined the room.");
 			broadcast(socket,"userJoin",res);
 			
 		});		
 		this.leave=((socket,user)=>{
 			delete userList[user.email];
+			socket.leave(roomId);
 			var data={"userCount":this.getUserCount(),"user":user}; 
 			broadcast(socket,"userLeave",data);
-			console.log(user.email +" has left the room "+roomId);
+			console.log("ChatRoom("+rmId+"):"+user.email +" has left the room.");
 		});
 		this.requestMediaOffer=((io,req)=>{
 			var receiver=userList[req.receiver.email];
 			var sender=userList[req.sender.email];
-			console.log(sender.email+" request an media offer from "+receiver.email);
+			console.log("ChatRoom("+rmId+"):"+sender.email+" request an media offer from "+receiver.email);
 			io.to(receiver.socketId).emit('requestMediaOffer', req);
 		});
 		this.sendAnswer=((io,req)=>{
 			var receiver=userList[req.channelInfo.receiver.email];
 			var sender=userList[req.channelInfo.sender.email];
-			console.log(sender.email+" send an media answer to "+receiver.email);
+			console.log("ChatRoom("+rmId+"):"+sender.email+" send an media answer to "+receiver.email);
 			io.to(receiver.socketId).emit('receiveMediaAnswer', req);
 		});
 		this.sendICECandidate=((io,req)=>{
 			var receiver=userList[req.channelInfo.receiver.email];
 			var sender=userList[req.channelInfo.sender.email];
-			console.log(sender.email+" send an ICE Candidate to "+receiver.email);
+			console.log("ChatRoom("+rmId+"):"+sender.email+" send an ICE Candidate to "+receiver.email);
 			io.to(receiver.socketId).emit("receiveICECandidate", req);
 		});
 		this.sendMediaOffer=((io,req)=>{
 			var receiver=userList[req.channelInfo.receiver.email];
 			var sender=userList[req.channelInfo.sender.email];
-			console.log(sender.email+" send an media offer to "+receiver.email);
+			console.log("ChatRoom("+rmId+"):"+sender.email+" send an media offer to "+receiver.email);
 			io.to(receiver.socketId).emit('receiveMediaOffer', req);
 		});
 //----------------------------------------------		

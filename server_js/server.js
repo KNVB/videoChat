@@ -80,7 +80,6 @@ app.get('/room',function(req,res){
 	*/
 	res.locals.user=req.session.user;
 	res.locals.roomId=req.session.roomId;
-	
 	res.render('room');
 
 });
@@ -157,14 +156,12 @@ io.on('connection', (socket) => {
 		var user=userList[req.userEmail];
 		
 		room.leave(socket,user);
-		
 		if (room.getUserCount()==0) {
 			delete roomList[req.roomId];
 			console.log("ChatRoom:"+req.roomId+" has been closed.");
 		}
 	});
 	socket.on("requestMediaOffer",(req)=>{
-		
 		var room=roomList[req.roomId];
 		room.requestMediaOffer(io,req);
 	});
@@ -177,7 +174,6 @@ io.on('connection', (socket) => {
 		room.sendAnswer(io,req);
 	});
 	socket.on("sendMediaOffer",(req)=>{
-		
 		var room=roomList[req.channelInfo.roomId];
 		room.sendMediaOffer(io,req);
 	});

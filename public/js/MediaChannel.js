@@ -11,9 +11,15 @@ class MediaChannel{
 			iceRestart: true
 		};
 		var channelInfo=ci,dataChannel,logger,pc,self=this,socket;
+		var onTrackEventHandler=null,onMessageEventHandler=null;
+//-----------------------------------------------------------------------------------------------				
+		this.addTrack=((track)=>{
+			pc.addTrack(track);
+		});
 		this.addICECandidate=(async (iceCandidate)=>{
 			await pc.addIceCandidate(iceCandidate)
 		});
+		
 		this.createAnswer=(async (offer)=>{
 			await self.setRemoteDescription(offer);
 			var answer=await pc.createAnswer();
@@ -45,8 +51,23 @@ class MediaChannel{
 		this.hangUp=(()=>{
 			hangUp();
 		});
+		this.removeAllMediaTrack=(()=>{
+			var senders=pc.getSenders();
+			senders.forEach((sender)=>{
+				pc.removeTrack(sender);
+			});			
+		});
+		this.sendMsg=((msg)=>{
+			dataChannel.send(msg);
+		});
 		this.setLogger=((wl)=>{
 			logger=wl;
+		});
+		this.setOnMessageEventHandler=((handler)=>{
+			onMessageEventHandler=handler;
+		});
+		this.setOnTrackEventHandler=((handler)=>{
+			onTrackEventHandler=handler;
 		});
 		this.setRemoteDescription=(async (answer)=>{
 			await pc.setRemoteDescription(answer);
@@ -72,8 +93,8 @@ class MediaChannel{
 		}
 		function dataChannelMessage(message) {
 			logger('Received Message from Data Channel:'+message.data);
-			text = message.data;
 			//chatlog(text);
+			onMessageEventHandler(message,channelInfo);
 		}
 		function handleClose() {
 			logger("pc.connection is closed");
@@ -147,13 +168,18 @@ class MediaChannel{
 			*/
 		}	
 		function handleRemoteTrack(event) {
-			logger("Track event:"+event.track.kind); 
+			logger("Track event:"+event.track.kind);
+			logger(onTrackEventHandler);
+			onTrackEventHandler(event.track,channelInfo);			
+			/*
 			var remoteStream;
 			if (remoteVideo.srcObject==null){
 				remoteView.srcObject=new MediaStream();
 			}
 			remoteStream=remoteVideo.srcObject;
 			remoteStream.addTrack(event.track, remoteStream);
+			*/
+			
 		}
 		function handleSignalingStateChange(event) {
 			logger("pc.signalingState="+pc.signalingState);
