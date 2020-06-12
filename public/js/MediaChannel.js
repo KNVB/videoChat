@@ -161,7 +161,8 @@ class MediaChannel{
 		}	
 		function handleNegotiation(event) {
 			logger('Handle Negotitation');
-			socket.emit("requestMediaOffer",channelInfo);
+			//pc.restartIce();
+			//socket.emit("requestMediaOffer",channelInfo);
 			/* 
 			if (isCaller==2) {
 				createOffer();
