@@ -12,6 +12,7 @@ class MediaChannel{
 		};
 		var channelInfo=ci,dataChannel,logger,pc,self=this,socket;
 		var onTrackEventHandler=null,onMessageEventHandler=null;
+		var negotiationHandler=null;
 //-----------------------------------------------------------------------------------------------				
 		this.addTrack=((track)=>{
 			pc.addTrack(track);
@@ -57,12 +58,16 @@ class MediaChannel{
 				pc.removeTrack(sender);
 			});			
 		});
-		this.sendMsg=((msg)=>{
-			dataChannel.send(msg);
-		});
 		this.setLogger=((wl)=>{
 			logger=wl;
 		});
+		this.sendMsg=((msg)=>{
+			dataChannel.send(msg);
+		});
+		this.setNegotiationHandler=((handler)=>{
+			negotiationHandler=handler;
+		});
+		
 		this.setOnMessageEventHandler=((handler)=>{
 			onMessageEventHandler=handler;
 		});
@@ -158,9 +163,15 @@ class MediaChannel{
 		}
 		function handleICEGatheringStateChange() {
 			logger("ICE Gathering State ="+pc.iceGatheringState);
-		}	
-		function handleNegotiation(event) {
-			logger('Handle Negotitation');
+		}
+		
+		async function handleNegotiation(event) {
+			//logger('Handle Negotitation');
+			negotiationHandler(channelInfo);
+			//var offer=await self.createOffer();
+			//var req={"channelInfo":channelInfo};
+			//req["offer"]=offer;
+			//socket.emit("sendMediaOffer",req);
 			//pc.restartIce();
 			//socket.emit("requestMediaOffer",channelInfo);
 			/* 
@@ -168,7 +179,8 @@ class MediaChannel{
 				createOffer();
 			}
 			*/
-		}	
+		}
+		
 		function handleRemoteTrack(event) {
 			logger("Track event:"+event.track.kind);
 			onTrackEventHandler(event.track,channelInfo);			

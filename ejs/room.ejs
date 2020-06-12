@@ -64,8 +64,10 @@
 				var mediaChannel=new MediaChannel(ci);
 				mediaChannel.setLogger(writeLog);
 				mediaChannel.setSocket(socket);
+				
 				mediaChannel.setOnMessageEventHandler(onMessageEventHandler);
 				mediaChannel.setOnTrackEventHandler(ontrackEventHandler);
+				mediaChannel.setNegotiationHandler(negotiationHandler);
 				mediaChannel.createConnection();
 				return mediaChannel;
 			}
@@ -76,6 +78,10 @@
 					mc.hangUp();
 				});
 				socket.emit("leaveRoom",req);
+			}
+			function negotiationHandler(channelInfo){
+				writeLog("negotiation event");
+				writeLog(channelInfo);
 			}
 			function onMessageEventHandler(messageObj,channelInfo){
 				writeLog("An on message event occur in "+channelInfo.receiver.email+" channel");
@@ -128,12 +134,14 @@
 				ci.receiver=req.sender;
 				ci.sender=req.receiver;
 				mediaChannel=initMediaChannel(ci);
+				/*
 				offer=await mediaChannel.createOffer();
 				channelList[req.sender.email]=mediaChannel;
 				res["channelInfo"]=ci;
 				res["offer"]=offer;
 				
 				socket.emit("sendMediaOffer",res);
+				*/
 			});
 			socket.on('receiveMediaAnswer',async (req)=>{
 				var ci=req.channelInfo;
