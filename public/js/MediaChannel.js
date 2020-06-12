@@ -161,6 +161,7 @@ class MediaChannel{
 		}	
 		function handleNegotiation(event) {
 			logger('Handle Negotitation');
+			socket.emit("requestMediaOffer",channelInfo);
 			/* 
 			if (isCaller==2) {
 				createOffer();
@@ -169,7 +170,6 @@ class MediaChannel{
 		}	
 		function handleRemoteTrack(event) {
 			logger("Track event:"+event.track.kind);
-			logger(onTrackEventHandler);
 			onTrackEventHandler(event.track,channelInfo);			
 			/*
 			var remoteStream;

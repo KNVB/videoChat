@@ -155,10 +155,12 @@ io.on('connection', (socket) => {
 		var room=roomList[req.roomId];
 		var user=userList[req.userEmail];
 		
-		room.leave(socket,user);
-		if (room.getUserCount()==0) {
-			delete roomList[req.roomId];
-			console.log("ChatRoom:"+req.roomId+" has been closed.");
+		if (room!=null){
+			room.leave(socket,user);
+			if (room.getUserCount()==0) {
+				delete roomList[req.roomId];
+				console.log("ChatRoom:"+req.roomId+" has been closed.");
+			}
 		}
 	});
 	socket.on("requestMediaOffer",(req)=>{
