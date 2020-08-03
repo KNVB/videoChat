@@ -1,0 +1,59 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+		<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+	</head>
+	<body>
+		<h1>Create Meeting</h1>
+		<form action="/createMeeting" method="post">	
+			<div class="container">
+				<div class="align-items-center p-1 row">
+					<div class="col-6 p-0 text-right">
+						Your alias:
+					</div>
+					<div class="col-6 pl-1 text-left">
+						<input class="bg-success text-white" name="alias" required type="text">
+					</div>
+				</div>
+				<div class="align-items-center p-1 row">
+					<div class="col-6 p-0 text-right">
+						Share Video Source:
+					</div>
+					<div class="col-6 pl-1 text-left">
+						<select name="videoSrc" class="bg-success text-white"> 
+							<option value="no" >No</option>
+							<option value="frontCam">Front Camera</option>
+							<option value="backCam">Back Camera</option>
+							<option value="screen">Screen</option>
+						</select>
+					</div>
+				</div>
+				<div class="align-items-center p-1 row">
+					<div class="col-6 p-0 text-right">
+						Share Audio:
+					</div>
+					<div class="col-6 pl-1 text-left">
+						<select name="shareAudio" class="bg-success text-white">
+							<option value="no" >No</option>
+							<option value="yes">Yes</option>
+						</select>
+					</div>
+				</div>
+				<div class="p-1 row">
+					<div class="col-12 d-flex justify-content-center">
+						<input type="hidden" name="userId" value="<%=userId%>">
+						<button class="btn-sm btn btn-lg btn-success">
+							Create Meeting
+						</button>		
+					</div>	
+				</div>
+				
+			</div>
+		</form>
+	</body>
+</html>	
