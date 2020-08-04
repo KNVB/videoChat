@@ -7,17 +7,37 @@
 		<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+		<script>
+			function checkForm(v){
+				var isTheFormOk=true;
+				var messageBox=document.getElementById("errorMessage");
+				if (v.alias.value=="") {
+					messageBox.innerHTML="Please enter your alias";
+					isTheFormOk=false;
+				}
+				if (isTheFormOk) {
+					var meetingPwd=v.meetingPwd.value; 
+					var cfmMeetingPwd=v.cfmMeetingPwd.value;
+					if (meetingPwd!=cfmMeetingPwd){
+						messageBox.innerHTML ="The meeting password does not match with the confirm password<br>";
+						messageBox.innerHTML+="please enter again.";
+						isTheFormOk=false;
+					}
+				}
+				return isTheFormOk;
+			}
+		</script>
 	</head>
 	<body>
 		<h1>Create Meeting</h1>
-		<form action="/createMeeting" method="post">	
+		<form action="/createMeeting" method="post" onsubmit="return checkForm(this);">	
 			<div class="container">
 				<div class="align-items-center p-1 row">
 					<div class="col-6 p-0 text-right">
 						Your alias:
 					</div>
 					<div class="col-6 pl-1 text-left">
-						<input class="bg-success text-white" name="alias" required type="text">
+						<input class="" name="alias" required type="text">
 					</div>
 				</div>
 				<div class="align-items-center p-1 row">
@@ -25,12 +45,7 @@
 						Share Video Source:
 					</div>
 					<div class="col-6 pl-1 text-left">
-						<select name="videoSrc" class="bg-success text-white"> 
-							<option value="no" >No</option>
-							<option value="frontCam">Front Camera</option>
-							<option value="backCam">Back Camera</option>
-							<option value="screen">Screen</option>
-						</select>
+						<%-videoSrcDropDown%>
 					</div>
 				</div>
 				<div class="align-items-center p-1 row">
@@ -38,10 +53,23 @@
 						Share Audio:
 					</div>
 					<div class="col-6 pl-1 text-left">
-						<select name="shareAudio" class="bg-success text-white">
-							<option value="no" >No</option>
-							<option value="yes">Yes</option>
-						</select>
+						<%-shareAudioDropDown%>
+					</div>
+				</div>
+				<div class="align-items-center p-1 row">
+					<div class="col-6 p-0 text-right">
+						Meeting Password:
+					</div>
+					<div class="col-6 pl-1 text-left">
+						<input class="" name="meetingPwd" required type="password">
+					</div>
+				</div>
+				<div class="align-items-center p-1 row">
+					<div class="col-6 p-0 text-right">
+						Confirm Password:
+					</div>
+					<div class="col-6 pl-1 text-left">
+						<input class="" name="cfmMeetingPwd" required type="password">
 					</div>
 				</div>
 				<div class="p-1 row">
@@ -52,7 +80,13 @@
 						</button>		
 					</div>	
 				</div>
-				
+				<div class="p-1 row">
+					<div class="col-3"></div>
+					<div id="errorMessage" class="bg-danger col-6 d-flex justify-content-center text-white">
+						<%=((typeof errorMessage=='undefined')?"":errorMessage)%>
+					</div>
+					<div class="col-3"></div>
+				</div>
 			</div>
 		</form>
 	</body>
